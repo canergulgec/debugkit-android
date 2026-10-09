@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- taskAffinity is per host app so two apps using DebugKit never share a task. -->
+        <activity
+            android:name=".ui.DebugKitActivity"
+            android:exported="false"
+            android:label="DebugKit"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.debugkit"
+            android:theme="@style/Theme.DebugKit" />
+    </application>
+</manifest>

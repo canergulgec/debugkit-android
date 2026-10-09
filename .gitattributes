@@ -1,0 +1,4 @@
+# Gradle wrapper scripts: Unix line endings for gradlew, Windows ones for the .bat.
+/gradlew        text eol=lf
+*.bat           text eol=crlf
+*.jar           binary
