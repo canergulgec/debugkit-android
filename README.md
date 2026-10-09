@@ -96,8 +96,15 @@ The **Layers** screen then shows:
   show test tag, role, text, content description, click handling and modifiers.
 - **3D**: every element as its own slice, lifted by its depth; drag to rotate, pinch to zoom,
   and adjust spacing and the visible depth range.
+- **Measure**: tap two elements to see the gap between them in dp, or the inner one's distance
+  to each edge when one contains the other (handy for checking padding against the design).
+- **Color**: touch and drag to read the exact color under your finger as hex and RGB; recent
+  colors stay one tap away for copying.
 - **Tree**: the full hierarchy. XML Views are blue, Compose nodes green, and Views placed in
   Compose with `AndroidView` orange, each under the Compose node that hosts it.
+
+In the flat modes, pinch to zoom in on small elements (two fingers in Color). A tap that lands on
+background snaps to the nearest small element, so a near miss does not select the whole screen.
 
 Compose content is read from its semantics tree, so give important composables a
 `Modifier.testTag` to see meaningful names. Only the activity's main window is captured, not

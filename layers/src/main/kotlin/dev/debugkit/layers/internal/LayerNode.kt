@@ -38,6 +38,18 @@ internal data class Bounds(val left: Int, val top: Int, val right: Int, val bott
     val centerY: Int get() = (top + bottom) / 2
 
     fun contains(x: Int, y: Int): Boolean = x in left until right && y in top until bottom
+
+    fun contains(other: Bounds): Boolean =
+        other.left >= left && other.top >= top && other.right <= right && other.bottom <= bottom
+
+    val area: Long get() = width.toLong() * height
+
+    /** Straight-line distance from (x, y) to the nearest point of this rectangle; 0 inside it. */
+    fun distanceTo(x: Int, y: Int): Double {
+        val dx = maxOf(left - x, 0, x - (right - 1))
+        val dy = maxOf(top - y, 0, y - (bottom - 1))
+        return kotlin.math.sqrt((dx.toLong() * dx + dy.toLong() * dy).toDouble())
+    }
 }
 
 /** The app screen as it was when DebugKit opened. */

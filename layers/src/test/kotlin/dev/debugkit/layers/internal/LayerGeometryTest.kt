@@ -59,4 +59,24 @@ class LayerGeometryTest {
         val levels = LayerGeometry.visualLevels(listOf(decor, content, compose, header, list, overlay))
         assertEquals(mapOf(0 to 0, 1 to 0, 2 to 0, 3 to 1, 4 to 1, 5 to 1), levels)
     }
+
+    @Test
+    fun `pick keeps a direct hit on a small element`() {
+        // Screen 100x200, so "large" is 5000 px² or more: root, card and overlay are large; title and button are not.
+        assertEquals(title, LayerGeometry.pick(nodes, 30, 30, tolerance = 8, screenWidth = 100, screenHeight = 200))
+    }
+
+    @Test
+    fun `pick snaps a background tap to the nearest small element`() {
+        // (50, 45) is inside the card (a large container here) but 5 px below the title.
+        assertEquals(title, LayerGeometry.pick(nodes, 50, 45, tolerance = 8, screenWidth = 100, screenHeight = 200))
+        // Between title (last row 39) and button (first row 60): 10 px from title, 11 from button.
+        assertEquals(title, LayerGeometry.pick(nodes, 50, 49, tolerance = 12, screenWidth = 100, screenHeight = 200))
+    }
+
+    @Test
+    fun `pick falls back to the direct hit when nothing small is near`() {
+        assertEquals(overlay, LayerGeometry.pick(nodes, 50, 190, tolerance = 8, screenWidth = 100, screenHeight = 200))
+        assertEquals(root, LayerGeometry.pick(nodes, 5, 120, tolerance = 4, screenWidth = 100, screenHeight = 200))
+    }
 }

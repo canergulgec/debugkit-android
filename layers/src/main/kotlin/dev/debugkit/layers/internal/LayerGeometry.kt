@@ -15,6 +15,26 @@ internal object LayerGeometry {
             ?.value
 
     /**
+     * What a finger tap at ([x], [y]) most likely means. A tap right on an element picks it, as
+     * [hitTest] does. But fingers are wide and the screenshot is drawn small, so a tap that only
+     * hits background, or a container covering much of the screen, snaps to the nearest smaller
+     * element within [tolerance] pixels instead of selecting the whole screen.
+     */
+    fun pick(nodes: List<LayerNode>, x: Int, y: Int, tolerance: Int, screenWidth: Int, screenHeight: Int): LayerNode? {
+        val direct = hitTest(nodes, x, y, 0..Int.MAX_VALUE)
+        // A quarter of the screen: bigger than any control, smaller than page-level containers.
+        val large = screenWidth.toLong() * screenHeight / 4
+        if (direct != null && direct.bounds.area < large) return direct
+        val nearby = nodes.withIndex()
+            .filter { (_, node) -> node.bounds.area in 1 until large }
+            .map { (index, node) -> Triple(node, node.bounds.distanceTo(x, y), index) }
+            .filter { it.second <= tolerance }
+            // Closest first; then the deeper element, then the one drawn on top.
+            .minWithOrNull(compareBy<Triple<LayerNode, Double, Int>> { it.second }.thenByDescending { it.first.depth }.thenByDescending { it.third })
+        return nearby?.first ?: direct
+    }
+
+    /**
      * The level each node is drawn at in 3D. A node that is its parent's only child and exactly
      * covers it stays on the parent's level: stacks of identical full-screen wrappers (DecorView,
      * content frame, ComposeView, …) would otherwise add slices that look the same, and steps of
