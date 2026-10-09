@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A classic XML screen with a Compose island, to exercise the Layers inspector on mixed UI. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/xml_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FAFAFA"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/xml_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="XML screen"
+        android:textColor="#212121"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/xml_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Views from XML, with a Compose card below."
+        android:textColor="#616161"
+        android:textSize="14sp" />
+
+    <FrameLayout
+        android:id="@+id/xml_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:background="#E3F2FD"
+        android:padding="16dp">
+
+        <androidx.compose.ui.platform.ComposeView
+            android:id="@+id/compose_island"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/xml_open_debugkit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Open DebugKit" />
+</LinearLayout>

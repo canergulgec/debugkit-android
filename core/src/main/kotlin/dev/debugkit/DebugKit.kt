@@ -1,10 +1,13 @@
 package dev.debugkit
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.os.Looper
 import dev.debugkit.internal.CrashAttachments
 import dev.debugkit.internal.DebugSettings
+import dev.debugkit.internal.OpenHooks
 import dev.debugkit.internal.PluginRegistry
 import dev.debugkit.internal.ScreenTracker
 import dev.debugkit.internal.ShakeToOpen
@@ -76,7 +79,23 @@ public object DebugKit {
 
     /** Opens the DebugKit screen, e.g. from a button in the host app's own debug menu. */
     public fun open(context: Context) {
-        context.startActivity(intent(context))
+        val start = { context.startActivity(intent(context)) }
+        // Hooks need the app screen still in front, so they only run when one is.
+        val activity = ScreenTracker.resumedActivity
+        if (activity != null && Looper.myLooper() == Looper.getMainLooper()) {
+            OpenHooks.runThenOpen(activity, start)
+        } else {
+            start()
+        }
+    }
+
+    /**
+     * Runs [hook] on the app screen in front just before DebugKit opens over it, for feature
+     * modules that capture that screen; not part of `:noop`. Call `done` when finished; DebugKit
+     * opens once every hook is done, or after half a second regardless.
+     */
+    public fun beforeOpen(hook: (activity: Activity, done: () -> Unit) -> Unit) {
+        OpenHooks.add(hook)
     }
 
     /**

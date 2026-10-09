@@ -31,6 +31,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":core")
 include(":network")
 include(":logs")
+include(":layers")
 include(":noop")
 
 // Demo app; never published.

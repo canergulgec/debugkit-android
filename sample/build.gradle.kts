@@ -27,6 +27,7 @@ dependencies {
     debugImplementation(projects.core)
     debugImplementation(projects.network)
     debugImplementation(projects.logs)
+    debugImplementation(projects.layers)
     releaseImplementation(projects.noop)
 
     implementation(libs.okhttp)

@@ -25,6 +25,7 @@ dependencies {
     debugImplementation("com.github.debugkit-dev.debugkit-android:core:<version>")
     debugImplementation("com.github.debugkit-dev.debugkit-android:network:<version>")
     debugImplementation("com.github.debugkit-dev.debugkit-android:logs:<version>")
+    debugImplementation("com.github.debugkit-dev.debugkit-android:layers:<version>")
     releaseImplementation("com.github.debugkit-dev.debugkit-android:noop:<version>")
 }
 ```
@@ -84,6 +85,24 @@ The next launch shows a dialog linking to the **Crashes** screen, which keeps th
 Turn it off with `captureCrashes = false`, or keep recording without the dialog with
 `showCrashDialog = false`.
 
+### Layers
+
+No setup code: adding the `layers` dependency is enough. Each time DebugKit opens over an app
+screen (shake, or `DebugKit.open`), that screen's screenshot and element tree are captured.
+The **Layers** screen then shows:
+
+- **2D**: tap an element to see its properties. Views show class, id, fragment, size and
+  position in px and dp, padding, margin, background, text, text size and color. Compose nodes
+  show test tag, role, text, content description, click handling and modifiers.
+- **3D**: every element as its own slice, lifted by its depth; drag to rotate, pinch to zoom,
+  and adjust spacing and the visible depth range.
+- **Tree**: the full hierarchy. XML Views are blue, Compose nodes green, and Views placed in
+  Compose with `AndroidView` orange, each under the Compose node that hosts it.
+
+Compose content is read from its semantics tree, so give important composables a
+`Modifier.testTag` to see meaningful names. Only the activity's main window is captured, not
+dialogs or bottom sheets.
+
 ### Logs
 
 ```kotlin
@@ -139,6 +158,7 @@ red **MOCK ON** pill sits on every app screen while any rule is enabled. Release
 | `core` | Plugin API, DebugKit screen, shake-to-open, built-in App Info plugin |
 | `network` | OkHttp interceptor and Network screen |
 | `logs` | Timber tree and Logs screen |
+| `layers` | Layers inspector for XML and Compose screens |
 | `noop` | Release stand-in with the same public API (including `DebugKitInterceptor` and `DebugKitTree`) |
 | `sample` | Demo app (not published) |
 

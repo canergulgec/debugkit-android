@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.core.content.pm.PackageInfoCompat
+import java.lang.ref.WeakReference
 
 internal fun Context.packageInfo(): PackageInfo =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -41,8 +42,19 @@ internal object ScreenTracker : ActivityCallbacks() {
     var current: String? = null
         private set
 
+    private var resumed: WeakReference<Activity>? = null
+
+    /** The app screen in front right now, or null while DebugKit or another app is in front. */
+    val resumedActivity: Activity? get() = resumed?.get()
+
     override fun onActivityResumed(activity: Activity) {
-        if (!activity.isDebugKit()) current = activity.javaClass.name
+        if (activity.isDebugKit()) return
+        current = activity.javaClass.name
+        resumed = WeakReference(activity)
+    }
+
+    override fun onActivityPaused(activity: Activity) {
+        if (resumed?.get() === activity) resumed = null
     }
 
     fun install(application: Application) {

@@ -1,6 +1,8 @@
 package dev.debugkit.sample
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import dev.debugkit.DebugKit
 
@@ -43,6 +47,21 @@ class MainActivity : ComponentActivity() {
                         Button(onClick = { SampleRequests.sendAll(app.httpClient) }) {
                             Text("Send sample requests")
                         }
+                        Button(onClick = { startActivity(Intent(this@MainActivity, XmlActivity::class.java)) }) {
+                            Text("Open XML screen")
+                        }
+                        // A classic View inside Compose, shown in orange by the Layers inspector.
+                        AndroidView(
+                            factory = { context ->
+                                TextView(context).apply {
+                                    id = R.id.legacy_banner
+                                    text = "Legacy TextView via AndroidView"
+                                    setPadding(32, 24, 32, 24)
+                                    setBackgroundColor(0xFFFFF3E0.toInt())
+                                }
+                            },
+                            modifier = Modifier.testTag("LegacyBanner"),
+                        )
                         if (DebugKit.isEnabled) {
                             val context = LocalContext.current
                             Text("Shake the device or tap the button to open DebugKit.")
