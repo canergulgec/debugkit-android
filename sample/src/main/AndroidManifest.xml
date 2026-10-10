@@ -16,5 +16,31 @@
             </intent-filter>
         </activity>
         <activity android:name=".XmlActivity" android:label="XML screen" />
+
+        <!-- Deep link targets for the Deep Links screen. -->
+        <activity
+            android:name=".ProductActivity"
+            android:exported="true"
+            android:label="Product">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="debugkit-sample" android:host="product" />
+            </intent-filter>
+            <!-- Never verifies (the domain hosts no assetlinks.json), to show the "not verified" state. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="debugkit.example.com" android:pathPrefix="/product" />
+            </intent-filter>
+            <!-- Deliberately missing BROWSABLE: opens from inside the app only. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="debugkit-sample" android:host="internal" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

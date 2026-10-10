@@ -31,6 +31,12 @@ class SampleApplication : Application() {
                 choice("onboarding_variant", "Onboarding variant", options = listOf("A", "B", "C"))
                 text("promo_code", "Promo code")
             }
+            deepLinks {
+                link("Product 123", "debugkit-sample://product/123?source=push")
+                link("Product page on the web", "https://debugkit.example.com/product/123")
+                link("Internal screen (not browsable)", "debugkit-sample://internal/settings")
+                link("Unknown screen", "debugkit-sample://cart")
+            }
             actions {
                 section("Session")
                 info("Session ID") { sessionId }

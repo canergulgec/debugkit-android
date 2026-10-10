@@ -20,6 +20,14 @@ public class DebugKitConfig internal constructor() {
     public fun flags(block: FlagsBuilder.() -> Unit): Unit = Unit
 
     public fun actions(block: ActionsBuilder.() -> Unit): Unit = Unit
+
+    public fun deepLinks(block: DeepLinksBuilder.() -> Unit): Unit = Unit
+}
+
+@DebugKitDsl
+public class DeepLinksBuilder internal constructor() {
+
+    public fun link(title: String, uri: String): Unit = Unit
 }
 
 @DslMarker

@@ -75,6 +75,24 @@ val newCheckout = DebugKit.flag("new_checkout", default = remoteConfig.getBoolea
 In release builds `environmentUrl` always returns `fallback` and `flag` always returns `default`,
 and the `actions` lambdas are never run.
 
+### Deep links
+
+```kotlin
+DebugKit.install(this) {
+    deepLinks {
+        link("Product detail", "myapp://product/123")
+        link("Campaign", "https://example.com/campaign/summer")
+    }
+}
+```
+
+The **Deep Links** screen opens saved, recent or typed links. While a link is typed it shows
+its parts and which screen of the app opens it, and warns when only an intent filter without
+the `BROWSABLE` category matches (the link then works inside the app but not from a browser or
+chat app). **Open in app** uses the app's own routing; **Open like a link tap** lets the system
+choose, as a tap in another app would. On Android 12+ it also shows each `https` domain's App
+Links verification state, the usual reason a link opens the browser instead of the app.
+
 ### Analytics
 
 Record each event next to the real analytics call, typically in the app's analytics wrapper:

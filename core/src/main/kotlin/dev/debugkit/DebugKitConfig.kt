@@ -3,6 +3,7 @@ package dev.debugkit
 import dev.debugkit.internal.ActionItem
 import dev.debugkit.internal.Environment
 import dev.debugkit.internal.FlagDefinition
+import dev.debugkit.internal.deeplinks.DeepLink
 
 /** Options for [DebugKit.install]. Mirrored in `:noop`. */
 @DebugKitDsl
@@ -23,6 +24,7 @@ public class DebugKitConfig internal constructor() {
     internal val environments = mutableListOf<Environment>()
     internal val flags = mutableListOf<FlagDefinition>()
     internal val actions = mutableListOf<ActionItem>()
+    internal val deepLinks = mutableListOf<DeepLink>()
 
 
     /** Backend environments QA can switch between. Read the choice with [DebugKit.environmentUrl]. */
@@ -35,6 +37,11 @@ public class DebugKitConfig internal constructor() {
         FlagsBuilder(flags).block()
     }
 
+    /** Links QA can open with one tap under Deep Links, e.g. one per screen the app links to. */
+    public fun deepLinks(block: DeepLinksBuilder.() -> Unit) {
+        DeepLinksBuilder(deepLinks).block()
+    }
+
     /** App-specific buttons, toggles and values shown under Quick Actions. */
     public fun actions(block: ActionsBuilder.() -> Unit) {
         ActionsBuilder(actions).block()
@@ -44,6 +51,15 @@ public class DebugKitConfig internal constructor() {
 /** Keeps nested DebugKit builders from calling into each other's scopes. */
 @DslMarker
 public annotation class DebugKitDsl
+
+@DebugKitDsl
+public class DeepLinksBuilder internal constructor(private val target: MutableList<DeepLink>) {
+
+    /** A link such as `myapp://product/123` or `https://example.com/campaign`. */
+    public fun link(title: String, uri: String) {
+        target += DeepLink(title, uri)
+    }
+}
 
 @DebugKitDsl
 public class EnvironmentsBuilder internal constructor(private val target: MutableList<Environment>) {

@@ -13,10 +13,12 @@ import dev.debugkit.internal.PluginRegistry
 import dev.debugkit.internal.ScreenTracker
 import dev.debugkit.internal.ShakeToOpen
 import dev.debugkit.internal.analytics.AnalyticsStore
+import dev.debugkit.internal.deeplinks.DeepLinkStore
 import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.plugin.AppInfoPlugin
 import dev.debugkit.plugin.CrashesPlugin
 import dev.debugkit.plugin.DebugPlugin
+import dev.debugkit.plugin.DeepLinksPlugin
 import dev.debugkit.plugin.EnvironmentPlugin
 import dev.debugkit.plugin.FeatureFlagsPlugin
 import dev.debugkit.plugin.QuickActionsPlugin
@@ -53,6 +55,9 @@ public object DebugKit {
         }
         if (config.actions.isNotEmpty()) PluginRegistry.register(QuickActionsPlugin)
         if (config.environments.isNotEmpty()) PluginRegistry.register(EnvironmentPlugin)
+        // Useful without declared links too: typed links, recent links and App Links status.
+        DeepLinkStore.init(application, config.deepLinks.toList())
+        PluginRegistry.register(DeepLinksPlugin)
         // Shown even with no declared flags: flags the app reads are discovered at runtime.
         PluginRegistry.register(FeatureFlagsPlugin)
         PluginRegistry.register(AppInfoPlugin())
