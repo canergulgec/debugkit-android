@@ -7,6 +7,7 @@ import dev.debugkit.logs.DebugKitTree
 import dev.debugkit.network.DebugKitInterceptor
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import kotlinx.coroutines.delay
 import java.util.UUID
 
 class SampleApplication : Application() {
@@ -31,6 +32,16 @@ class SampleApplication : Application() {
                 choice("onboarding_variant", "Onboarding variant", options = listOf("A", "B", "C"))
                 text("promo_code", "Promo code")
             }
+            push {
+                // A real app returns FirebaseMessaging.getInstance().token.await().
+                token {
+                    delay(300)
+                    "sample-fcm-token-6f1c2a9e:APA91bH_example"
+                }
+                onTestMessage { data -> Toast.makeText(this@SampleApplication, "Push handler got $data", Toast.LENGTH_LONG).show() }
+                template("Order shipped", "Your order is on its way", mapOf("type" to "order", "orderId" to "123"))
+                template("Product on sale", "Tap to see the product", link = "debugkit-sample://product/77?source=push")
+            }
             deepLinks {
                 link("Product 123", "debugkit-sample://product/123?source=push")
                 link("Product page on the web", "https://debugkit.example.com/product/123")
@@ -49,6 +60,10 @@ class SampleApplication : Application() {
                 button("Send sample requests") { SampleRequests.sendAll(httpClient) }
                 button("Write sample logs", summary = "One of each level, plus an exception") { writeSampleLogs() }
                 button("Send sample analytics", summary = "A purchase, a mis-named event and a double-fired one") { sendSampleAnalytics() }
+                button("Simulate a received push", summary = "What FirebaseMessagingService would record") {
+                    DebugKit.recordPush("Folder shared", "Ayşe shared a folder with you", mapOf("type" to "shared_folder", "folderId" to "abc"))
+                    Toast.makeText(this@SampleApplication, "Push recorded. See Push → Received.", Toast.LENGTH_SHORT).show()
+                }
                 button("Crash the app", summary = "Throws on the main thread; reopen the app to see the report") {
                     Timber.w("About to crash on purpose")
                     throw IllegalStateException("Sample crash from Quick Actions", IllegalArgumentException("Cart is empty"))

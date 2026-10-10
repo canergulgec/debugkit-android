@@ -22,6 +22,18 @@ public class DebugKitConfig internal constructor() {
     public fun actions(block: ActionsBuilder.() -> Unit): Unit = Unit
 
     public fun deepLinks(block: DeepLinksBuilder.() -> Unit): Unit = Unit
+
+    public fun push(block: PushBuilder.() -> Unit): Unit = Unit
+}
+
+@DebugKitDsl
+public class PushBuilder internal constructor() {
+
+    public fun token(provider: suspend () -> String?): Unit = Unit
+
+    public fun onTestMessage(handler: (data: Map<String, String>) -> Unit): Unit = Unit
+
+    public fun template(title: String, body: String, data: Map<String, String> = emptyMap(), link: String? = null): Unit = Unit
 }
 
 @DebugKitDsl

@@ -25,6 +25,9 @@ public object DebugKit {
     public fun recordUserProperty(name: String, value: String?, provider: String = "Firebase"): Unit = Unit
 
     @Suppress("UNUSED_PARAMETER")
+    public fun recordPush(title: String?, body: String?, data: Map<String, String> = emptyMap()): Unit = Unit
+
+    @Suppress("UNUSED_PARAMETER")
     public fun open(context: Context): Unit = Unit
 
     public fun environmentUrl(fallback: String): String = fallback

@@ -4,6 +4,7 @@ import dev.debugkit.internal.ActionItem
 import dev.debugkit.internal.Environment
 import dev.debugkit.internal.FlagDefinition
 import dev.debugkit.internal.deeplinks.DeepLink
+import dev.debugkit.internal.push.PushTemplate
 
 /** Options for [DebugKit.install]. Mirrored in `:noop`. */
 @DebugKitDsl
@@ -25,6 +26,10 @@ public class DebugKitConfig internal constructor() {
     internal val flags = mutableListOf<FlagDefinition>()
     internal val actions = mutableListOf<ActionItem>()
     internal val deepLinks = mutableListOf<DeepLink>()
+    internal var pushConfigured = false
+    internal var pushToken: (suspend () -> String?)? = null
+    internal var pushHandler: ((Map<String, String>) -> Unit)? = null
+    internal val pushTemplates = mutableListOf<PushTemplate>()
 
 
     /** Backend environments QA can switch between. Read the choice with [DebugKit.environmentUrl]. */
@@ -35,6 +40,16 @@ public class DebugKitConfig internal constructor() {
     /** Feature flags QA can override. Read them with [DebugKit.flag]. */
     public fun flags(block: FlagsBuilder.() -> Unit) {
         FlagsBuilder(flags).block()
+    }
+
+    /**
+     * Push notification tools: the device token, ready-made test notifications, and a way to hand
+     * test data to the app's own push code. Received pushes are shown when the app calls
+     * [DebugKit.recordPush].
+     */
+    public fun push(block: PushBuilder.() -> Unit) {
+        pushConfigured = true
+        PushBuilder(this).block()
     }
 
     /** Links QA can open with one tap under Deep Links, e.g. one per screen the app links to. */
@@ -51,6 +66,31 @@ public class DebugKitConfig internal constructor() {
 /** Keeps nested DebugKit builders from calling into each other's scopes. */
 @DslMarker
 public annotation class DebugKitDsl
+
+@DebugKitDsl
+public class PushBuilder internal constructor(private val config: DebugKitConfig) {
+
+    /** Supplies the push token to show and copy, e.g. `FirebaseMessaging.getInstance().token.await()`. */
+    public fun token(provider: suspend () -> String?) {
+        config.pushToken = provider
+    }
+
+    /**
+     * Receives a test notification's data as if the push arrived while the app is open; call
+     * the same code the app's push service runs. Enables the "App's handler" option.
+     */
+    public fun onTestMessage(handler: (data: Map<String, String>) -> Unit) {
+        config.pushHandler = handler
+    }
+
+    /**
+     * A ready-made test notification. Tapping it launches the app with [data] as intent extras,
+     * as Firebase does in the background, or opens [link] when given.
+     */
+    public fun template(title: String, body: String, data: Map<String, String> = emptyMap(), link: String? = null) {
+        config.pushTemplates += PushTemplate(title, body, data, link)
+    }
+}
 
 @DebugKitDsl
 public class DeepLinksBuilder internal constructor(private val target: MutableList<DeepLink>) {

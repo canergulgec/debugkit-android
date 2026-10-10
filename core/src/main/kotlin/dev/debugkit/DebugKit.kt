@@ -14,6 +14,9 @@ import dev.debugkit.internal.ScreenTracker
 import dev.debugkit.internal.ShakeToOpen
 import dev.debugkit.internal.analytics.AnalyticsStore
 import dev.debugkit.internal.deeplinks.DeepLinkStore
+import dev.debugkit.internal.push.PushSetup
+import dev.debugkit.internal.push.PushStore
+import dev.debugkit.internal.push.ReceivedPush
 import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.plugin.AppInfoPlugin
 import dev.debugkit.plugin.CrashesPlugin
@@ -21,6 +24,7 @@ import dev.debugkit.plugin.DebugPlugin
 import dev.debugkit.plugin.DeepLinksPlugin
 import dev.debugkit.plugin.EnvironmentPlugin
 import dev.debugkit.plugin.FeatureFlagsPlugin
+import dev.debugkit.plugin.PushPlugin
 import dev.debugkit.plugin.QuickActionsPlugin
 import dev.debugkit.ui.DebugKitActivity
 
@@ -58,6 +62,8 @@ public object DebugKit {
         // Useful without declared links too: typed links, recent links and App Links status.
         DeepLinkStore.init(application, config.deepLinks.toList())
         PluginRegistry.register(DeepLinksPlugin)
+        PushStore.init(application, PushSetup(config.pushToken, config.pushHandler, config.pushTemplates.toList()))
+        if (config.pushConfigured || PushStore.received.isNotEmpty()) PluginRegistry.register(PushPlugin)
         // Shown even with no declared flags: flags the app reads are discovered at runtime.
         PluginRegistry.register(FeatureFlagsPlugin)
         PluginRegistry.register(AppInfoPlugin())
@@ -102,6 +108,17 @@ public object DebugKit {
     /** Shows a user property the app has just set; null means it was cleared. `:noop` does nothing. */
     public fun recordUserProperty(name: String, value: String?, provider: String = "Firebase") {
         if (installed) AnalyticsStore.recordUserProperty(provider, name, value)
+    }
+
+    /**
+     * Shows a push the app received under Push, with all of its data. Call it first thing in
+     * `FirebaseMessagingService.onMessageReceived` (or the equivalent of another push service);
+     * any thread is fine. `:noop` does nothing.
+     */
+    public fun recordPush(title: String?, body: String?, data: Map<String, String> = emptyMap()) {
+        if (!installed) return
+        PushStore.record(ReceivedPush(System.currentTimeMillis(), title, body, data.toMap()))
+        PluginRegistry.register(PushPlugin)
     }
 
     /** Opens the DebugKit screen, e.g. from a button in the host app's own debug menu. */

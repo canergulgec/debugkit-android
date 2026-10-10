@@ -75,6 +75,33 @@ val newCheckout = DebugKit.flag("new_checkout", default = remoteConfig.getBoolea
 In release builds `environmentUrl` always returns `fallback` and `flag` always returns `default`,
 and the `actions` lambdas are never run.
 
+### Push notifications
+
+```kotlin
+DebugKit.install(this) {
+    push {
+        token { FirebaseMessaging.getInstance().token.await() }
+        onTestMessage { data -> pushHandler.handle(data) }      // optional: "App's handler" delivery
+        template("Order shipped", "Your order is on its way", mapOf("type" to "order", "orderId" to "123"))
+        template("Product on sale", "Tap to see it", link = "myapp://product/77")
+    }
+}
+
+// FirebaseMessagingService (or another push service):
+override fun onMessageReceived(message: RemoteMessage) {
+    DebugKit.recordPush(message.notification?.title, message.notification?.body, message.data)
+    // ... the app's own handling
+}
+```
+
+The **Push** screen shows and copies the push token, and sends test notifications without a
+backend. QA picks what a tap does, to match how the app routes pushes: **Open app with data**
+launches the start screen with the data as intent extras (what Firebase does in the
+background), **Open link** opens a deep link, and **App's handler** passes the data to
+`onTestMessage` as if the push arrived in the foreground. Templates come from the app or are
+saved by QA. Received pushes are listed with all their data and survive restarts; any of them
+can be sent again as a test. DebugKit does not depend on Firebase.
+
 ### Deep links
 
 ```kotlin

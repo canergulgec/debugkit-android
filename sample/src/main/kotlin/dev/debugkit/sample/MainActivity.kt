@@ -37,6 +37,10 @@ class MainActivity : ComponentActivity() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         val app = application as SampleApplication
+                        // Shows what a tapped test notification ("Open app with data") passed in.
+                        val pushData = intent.extras?.keySet()?.filter { it in listOf("type", "orderId") }
+                            ?.joinToString { "$it=${intent.getStringExtra(it)}" }
+                        if (!pushData.isNullOrEmpty()) Text("Opened from a notification: $pushData", color = MaterialTheme.colorScheme.primary)
                         // Flag reads inside composition recompose when QA changes an override.
                         Text(
                             text = "Base URL: ${app.baseUrl}\n" +
