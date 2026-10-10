@@ -2,6 +2,7 @@ package dev.debugkit
 
 import android.app.Application
 import android.content.Context
+import android.os.Bundle
 
 /**
  * Release stand-in for `:core`'s DebugKit. Same signatures, does nothing, and always returns
@@ -13,6 +14,15 @@ public object DebugKit {
 
     @Suppress("UNUSED_PARAMETER")
     public fun install(application: Application, configure: DebugKitConfig.() -> Unit = {}): Unit = Unit
+
+    @Suppress("UNUSED_PARAMETER")
+    public fun recordAnalyticsEvent(name: String, params: Map<String, Any?> = emptyMap(), provider: String = "Firebase"): Unit = Unit
+
+    @Suppress("UNUSED_PARAMETER")
+    public fun recordAnalyticsEvent(name: String, params: Bundle?, provider: String = "Firebase"): Unit = Unit
+
+    @Suppress("UNUSED_PARAMETER")
+    public fun recordUserProperty(name: String, value: String?, provider: String = "Firebase"): Unit = Unit
 
     @Suppress("UNUSED_PARAMETER")
     public fun open(context: Context): Unit = Unit

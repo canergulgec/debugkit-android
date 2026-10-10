@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.os.Looper
 import dev.debugkit.internal.CrashAttachments
 import dev.debugkit.internal.DebugSettings
@@ -11,6 +12,7 @@ import dev.debugkit.internal.OpenHooks
 import dev.debugkit.internal.PluginRegistry
 import dev.debugkit.internal.ScreenTracker
 import dev.debugkit.internal.ShakeToOpen
+import dev.debugkit.internal.analytics.AnalyticsStore
 import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.plugin.AppInfoPlugin
 import dev.debugkit.plugin.CrashesPlugin
@@ -76,6 +78,26 @@ public object DebugKit {
     /** The value of a choice or text feature flag. See the Boolean overload. */
     public fun flag(key: String, default: String): String =
         if (installed) DebugSettings.stringFlag(key, default) else default
+
+    /**
+     * Shows an analytics event the app has just sent in DebugKit's Analytics screen. Call it next
+     * to the real call, e.g. in the app's analytics wrapper. DebugKit sends nothing anywhere.
+     * For [provider] "Firebase" (the default), events that break Firebase's naming and size
+     * limits, which Firebase silently drops, are flagged. `:noop` does nothing.
+     */
+    public fun recordAnalyticsEvent(name: String, params: Map<String, Any?> = emptyMap(), provider: String = "Firebase") {
+        if (installed) AnalyticsStore.recordEvent(provider, name, AnalyticsStore.normalize(params))
+    }
+
+    /** The Bundle form, as passed to `FirebaseAnalytics.logEvent`. See the Map overload. */
+    public fun recordAnalyticsEvent(name: String, params: Bundle?, provider: String = "Firebase") {
+        if (installed) AnalyticsStore.recordEvent(provider, name, AnalyticsStore.bundleToMap(params))
+    }
+
+    /** Shows a user property the app has just set; null means it was cleared. `:noop` does nothing. */
+    public fun recordUserProperty(name: String, value: String?, provider: String = "Firebase") {
+        if (installed) AnalyticsStore.recordUserProperty(provider, name, value)
+    }
 
     /** Opens the DebugKit screen, e.g. from a button in the host app's own debug menu. */
     public fun open(context: Context) {

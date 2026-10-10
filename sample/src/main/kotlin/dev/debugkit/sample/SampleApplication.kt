@@ -42,6 +42,7 @@ class SampleApplication : Application() {
                 toggle("Verbose logging", isChecked = { verboseLogging }, onCheckedChange = { verboseLogging = it })
                 button("Send sample requests") { SampleRequests.sendAll(httpClient) }
                 button("Write sample logs", summary = "One of each level, plus an exception") { writeSampleLogs() }
+                button("Send sample analytics", summary = "A purchase, a mis-named event and a double-fired one") { sendSampleAnalytics() }
                 button("Crash the app", summary = "Throws on the main thread; reopen the app to see the report") {
                     Timber.w("About to crash on purpose")
                     throw IllegalStateException("Sample crash from Quick Actions", IllegalArgumentException("Cart is empty"))
@@ -51,12 +52,30 @@ class SampleApplication : Application() {
         // DebugKitTree resolves to :logs in debug and :noop in release.
         Timber.plant(DebugKitTree())
         Timber.i("App started, session %s", sessionId)
+        DebugKit.recordUserProperty("plan", "premium")
         // Built at startup, like most apps do through DI, so the Network and Mock screens and the
         // MOCK ON indicator are ready from the first screen. DebugKitInterceptor resolves to
         // :network in debug and :noop in release.
         httpClient = OkHttpClient.Builder()
             .addInterceptor(DebugKitInterceptor(this))
             .build()
+    }
+
+    /** What an app's analytics wrapper would send; each call stands next to the real SDK call. */
+    private fun sendSampleAnalytics() {
+        DebugKit.recordAnalyticsEvent(
+            "purchase",
+            mapOf(
+                "currency" to "TRY",
+                "value" to 149.90,
+                "items" to listOf(mapOf("item_id" to "SKU-1", "item_name" to "Cloud 1 TB", "quantity" to 1)),
+            ),
+        )
+        // Breaks Firebase's naming rules: Firebase would drop it without an error.
+        DebugKit.recordAnalyticsEvent("Add To Cart", mapOf("item_id" to "SKU-1"))
+        // Fired twice by mistake.
+        repeat(2) { DebugKit.recordAnalyticsEvent("share_click", mapOf("target" to "whatsapp")) }
+        DebugKit.recordAnalyticsEvent("install_attributed", mapOf("network" to "organic"), provider = "Adjust")
     }
 
     private fun writeSampleLogs() {

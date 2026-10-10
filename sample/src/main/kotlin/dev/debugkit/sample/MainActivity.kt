@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,7 +45,15 @@ class MainActivity : ComponentActivity() {
                                 "promo_code: ${DebugKit.flag("promo_code", default = "").ifEmpty { "–" }}",
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        Button(onClick = { SampleRequests.sendAll(app.httpClient) }) {
+                        LaunchedEffect(Unit) {
+                            DebugKit.recordAnalyticsEvent("screen_view", mapOf("screen_name" to "Home", "screen_class" to "MainActivity"))
+                        }
+                        Button(
+                            onClick = {
+                                DebugKit.recordAnalyticsEvent("send_requests_click")
+                                SampleRequests.sendAll(app.httpClient)
+                            },
+                        ) {
                             Text("Send sample requests")
                         }
                         Button(onClick = { startActivity(Intent(this@MainActivity, XmlActivity::class.java)) }) {

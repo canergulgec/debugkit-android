@@ -75,6 +75,26 @@ val newCheckout = DebugKit.flag("new_checkout", default = remoteConfig.getBoolea
 In release builds `environmentUrl` always returns `fallback` and `flag` always returns `default`,
 and the `actions` lambdas are never run.
 
+### Analytics
+
+Record each event next to the real analytics call, typically in the app's analytics wrapper:
+
+```kotlin
+fun logEvent(name: String, params: Bundle) {
+    firebaseAnalytics.logEvent(name, params)
+    DebugKit.recordAnalyticsEvent(name, params)          // or a Map; provider = "Adjust" for other tools
+}
+
+DebugKit.recordUserProperty("plan", "premium")
+```
+
+The **Analytics** screen lists events with their parameters (nested ecommerce items included),
+lets you copy them as JSON, and shows the current user properties. Two kinds of problem are
+flagged: events sent twice with the same parameters within a second, and, for Firebase, names
+and values that break Firebase's limits (spaces in names, reserved prefixes, more than 25
+parameters, strings over 100 characters, …), which Firebase drops or cuts without any error.
+DebugKit sends nothing anywhere; in release builds these calls do nothing.
+
 ### Crashes
 
 On by default. When the app crashes, DebugKit saves the stack trace with the app, device,
