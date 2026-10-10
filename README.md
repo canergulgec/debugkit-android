@@ -202,7 +202,8 @@ OkHttpClient.Builder()
 
 Add it with `addInterceptor`, after your own interceptors, so it records the request exactly as
 it is sent. Calls show up under **Network**: status, timing, size, headers and pretty-printed
-JSON, with copy-as-cURL and share. The last 500 calls are kept across restarts, so the calls
+JSON, with copy-as-cURL and share. Request and response bodies can be searched, with matches
+highlighted and stepped through. The last 500 calls are kept across restarts, so the calls
 before a crash are still there on the next launch.
 
 A silent notification shows this session's call count and the latest calls; tap it to open
