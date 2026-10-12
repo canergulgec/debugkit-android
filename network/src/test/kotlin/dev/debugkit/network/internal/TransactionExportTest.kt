@@ -26,6 +26,33 @@ class TransactionExportTest {
         )
     }
 
+    private fun summary(code: Int? = null, error: String? = null, durationMs: Long? = null, mock: String? = null) = TransactionSummary(
+        id = 1,
+        requestedAt = 0,
+        method = "POST",
+        url = "https://api.example.com/cart",
+        durationMs = durationMs,
+        responseCode = code,
+        responseBodySize = null,
+        error = error,
+        mockRuleName = mock,
+    )
+
+    @Test
+    fun `call line for crash records has status, call, duration and mock`() {
+        // The time is in the device's zone, so it is checked through the same formatter.
+        val time = TransactionExport.formatTime(0)
+        assertEquals(
+            "$time 500 POST https://api.example.com/cart (231 ms) [mock: Cart fails]",
+            TransactionExport.callLine(summary(code = 500, durationMs = 231, mock = "Cart fails")),
+        )
+        assertEquals(
+            "$time ERR POST https://api.example.com/cart (30000 ms) error: java.net.SocketTimeoutException",
+            TransactionExport.callLine(summary(error = "java.net.SocketTimeoutException", durationMs = 30_000)),
+        )
+        assertEquals("$time … POST https://api.example.com/cart", TransactionExport.callLine(summary()))
+    }
+
     @Test
     fun `formats byte sizes`() {
         assertEquals("-", TransactionExport.formatBytes(null))

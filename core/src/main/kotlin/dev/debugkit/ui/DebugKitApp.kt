@@ -67,8 +67,9 @@ internal fun DebugKitApp(
     onClose: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
-    // The page chosen in each tab's switcher, by section name. HashMap so it survives recreation.
-    var pages by rememberSaveable { mutableStateOf(HashMap<String, String>()) }
+    // The page chosen in each tab's switcher, by section name. Replaced, never mutated, so every
+    // change is seen; Kotlin's maps are Serializable, so it survives recreation.
+    var pages by rememberSaveable { mutableStateOf<Map<String, String>>(emptyMap()) }
     // A page opened on its own, over the tabs: App pages, or any page Home links to directly.
     var openedId by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -82,7 +83,7 @@ internal fun DebugKitApp(
         } else {
             openedId = null
             tab = Tab.entries.first { it.section == plugin.section }
-            pages = HashMap(pages).apply { put(plugin.section.name, plugin.id) }
+            pages = pages + (plugin.section.name to plugin.id)
         }
     }
 
@@ -114,7 +115,7 @@ internal fun DebugKitApp(
                                 subpage = subpage.value,
                                 plugins = sectionPlugins,
                                 selected = selected,
-                                onSelect = { pages = HashMap(pages).apply { put(section.name, it.id) } },
+                                onSelect = { pages = pages + (section.name to it.id) },
                             )
                         }
                     }

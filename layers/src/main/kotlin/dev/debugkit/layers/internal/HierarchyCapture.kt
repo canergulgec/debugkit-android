@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
  * Compose with AndroidView are attached under the Compose node that contains them. Dialogs,
  * bottom sheets and popups are their own windows; each is walked as a further root.
  */
-internal class HierarchyCapture private constructor(private val activity: Activity) {
+internal class HierarchyCapture private constructor(activity: Activity) {
 
     private val nodes = mutableListOf<LayerNode>()
     private val resources: Resources = activity.resources

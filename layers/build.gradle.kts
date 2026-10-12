@@ -33,6 +33,7 @@ dependencies {
 
     // Registers the Layers screen at app start, so host apps only add the dependency.
     implementation(libs.androidx.startup)
+    implementation(libs.androidx.core.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)

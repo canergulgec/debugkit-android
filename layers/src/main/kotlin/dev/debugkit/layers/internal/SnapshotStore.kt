@@ -14,6 +14,7 @@ import android.view.WindowManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.graphics.createBitmap
 import kotlin.math.roundToInt
 
 /**
@@ -48,7 +49,7 @@ internal object SnapshotStore {
         }
 
         if (decor.width <= 0 || decor.height <= 0) return publish(null)
-        val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(decor.width, decor.height)
         try {
             // Copies what is on screen, including hardware bitmaps and SurfaceViews that
             // View.draw() cannot render. Only the activity's own window, though.
@@ -100,7 +101,7 @@ internal object SnapshotStore {
             // A hardware bitmap cannot be drawn on the screenshot's software canvas.
             if (rendered.config == Bitmap.Config.HARDWARE) rendered.copy(Bitmap.Config.ARGB_8888, false) else rendered
         } else {
-            Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888).also { root.draw(Canvas(it)) }
+            createBitmap(root.width, root.height).also { root.draw(Canvas(it)) }
         }
     }.getOrNull()
 }

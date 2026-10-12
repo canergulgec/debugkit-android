@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.get
 import dev.debugkit.layers.internal.LayerGeometry
 import dev.debugkit.layers.internal.LayerKind
 import dev.debugkit.layers.internal.LayerNode
@@ -181,7 +182,7 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
                 colorPoint = point
                 val bitmap = snapshot.bitmap
                 if (released && bitmap != null) {
-                    val pick = ColorPick(bitmap.getPixel(point.x, point.y), elementAt(point)?.displayName())
+                    val pick = ColorPick(bitmap[point.x, point.y], elementAt(point)?.displayName())
                     // Each color once: picking it again moves it to the front instead of adding a copy.
                     colorHistory.removeAll { it.color == pick.color }
                     colorHistory.add(0, pick)
@@ -239,7 +240,7 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
                 val bitmap = snapshot.bitmap
                 val point = colorPoint
                 val live = if (bitmap != null && point != null) {
-                    ColorPick(bitmap.getPixel(point.x, point.y), elementAt(point)?.displayName())
+                    ColorPick(bitmap[point.x, point.y], elementAt(point)?.displayName())
                 } else {
                     null
                 }

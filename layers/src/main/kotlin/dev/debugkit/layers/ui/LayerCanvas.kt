@@ -27,6 +27,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.withSave
+import androidx.core.graphics.withTranslation
 import dev.debugkit.layers.internal.Bounds
 import dev.debugkit.layers.internal.DpFormat
 import dev.debugkit.layers.internal.LayerKind
@@ -179,7 +181,6 @@ internal fun LayerCanvas(
                 val cx = size.width / 2f
                 val cy = size.height / 2f
                 visible.forEach { node ->
-                    native.save()
                     camera.save()
                     camera.rotateX(view3D.rotationX)
                     camera.rotateY(view3D.rotationY)
@@ -189,35 +190,35 @@ internal fun LayerCanvas(
                     camera.restore()
                     matrix.preTranslate(-cx, -cy)
                     matrix.postTranslate(cx, cy)
-                    native.concat(matrix)
-                    native.translate(fit.left, fit.top)
-                    native.scale(fit.scale, fit.scale)
-                    drawSlice(native, snapshot, node, paints)
-                    drawOutline(native, node, paints, fit.scale, faint = false)
-                    if (node == selected) drawSelection(native, node, paints, fit.scale)
-                    native.restore()
+                    native.withSave {
+                        concat(matrix)
+                        translate(fit.left, fit.top)
+                        scale(fit.scale, fit.scale)
+                        drawSlice(this, snapshot, node, paints)
+                        drawOutline(this, node, paints, fit.scale, faint = false)
+                        if (node == selected) drawSelection(this, node, paints, fit.scale)
+                    }
                 }
                 return@drawIntoCanvas
             }
 
             val fit = Fit(size.width, size.height, snapshot, flatView)
-            native.save()
-            native.translate(fit.left, fit.top)
-            native.scale(fit.scale, fit.scale)
-            drawScreen(native, snapshot, paints)
-            if (mode != LayersMode.Color) {
-                snapshot.nodes.forEach { drawOutline(native, it, paints, fit.scale, faint = true) }
-            }
-            when (mode) {
-                LayersMode.Select -> selected?.let { drawSelection(native, it, paints, fit.scale) }
-                LayersMode.Measure -> {
-                    measured.first?.let { drawMeasured(native, it, MEASURE_A, paints, fit.scale) }
-                    measured.second?.let { drawMeasured(native, it, MEASURE_B, paints, fit.scale) }
-                    measurement?.segments?.forEach { drawSegment(native, it, paints, fit.scale) }
+            native.withTranslation(fit.left, fit.top) {
+                scale(fit.scale, fit.scale)
+                drawScreen(this, snapshot, paints)
+                if (mode != LayersMode.Color) {
+                    snapshot.nodes.forEach { drawOutline(this, it, paints, fit.scale, faint = true) }
                 }
-                else -> Unit
+                when (mode) {
+                    LayersMode.Select -> selected?.let { drawSelection(this, it, paints, fit.scale) }
+                    LayersMode.Measure -> {
+                        measured.first?.let { drawMeasured(this, it, MEASURE_A, paints, fit.scale) }
+                        measured.second?.let { drawMeasured(this, it, MEASURE_B, paints, fit.scale) }
+                        measurement?.segments?.forEach { drawSegment(this, it, paints, fit.scale) }
+                    }
+                    else -> Unit
+                }
             }
-            native.restore()
 
             // Labels and markers are drawn in canvas pixels, so they stay readable at any scale.
             if (mode == LayersMode.Measure) {

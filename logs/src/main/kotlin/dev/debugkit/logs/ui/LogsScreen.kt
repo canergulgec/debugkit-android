@@ -50,6 +50,7 @@ import dev.debugkit.ui.DebugTone
 import dev.debugkit.ui.copyToClipboard
 import dev.debugkit.ui.shareText
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Refresh at most this often while logs pour in, so the list stays readable and cheap. */
 internal const val REFRESH_INTERVAL_MS = 300L
@@ -63,7 +64,7 @@ internal fun LogsScreen() {
     val entries by produceState(initialValue = LogStore.snapshot()) {
         LogStore.version.collect {
             value = LogStore.snapshot()
-            delay(REFRESH_INTERVAL_MS)
+            delay(REFRESH_INTERVAL_MS.milliseconds)
         }
     }
     var query by rememberSaveable { mutableStateOf("") }
