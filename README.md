@@ -54,6 +54,13 @@ dependencies {
 }
 ```
 
+Every build type needs either the real modules or `noop`. If QA tests a build type other than
+`debug` (say `qa` or `staging`), add the modules for it too, or the app will not compile:
+
+```kotlin
+"qaImplementation"("com.github.debugkit-dev.debugkit-android:core:<version>")
+```
+
 `Application.onCreate`:
 
 ```kotlin
@@ -65,8 +72,21 @@ inspector. The other features need one line or two in your app, listed below.
 
 ## Connecting your app
 
-Only add what you use. Every call below compiles in release builds too (through `noop`), so
-none of it needs a `BuildConfig.DEBUG` check.
+Only add what you use. Settings go in `DebugKit.install`; everything else is one line next to
+code your app already has:
+
+| Feature | Add | Where |
+|---|---|---|
+| Network, mocks | `DebugKitInterceptor(context)` | Where you build `OkHttpClient` |
+| Logs | `Timber.plant(DebugKitTree())` | `Application.onCreate` |
+| Push | `DebugKit.recordPush(...)` | `FirebaseMessagingService.onMessageReceived` |
+| Analytics | `DebugKit.recordAnalyticsEvent(...)` | Your analytics wrapper, next to the real call |
+| Environments | `DebugKit.environmentUrl(...)` | Where you set the Retrofit base URL |
+| Feature flags | `DebugKit.flag(...)` | Where you read a flag |
+| Crashes, Layers | nothing | |
+
+Every one of these compiles in release builds too, where `noop` turns it into a no-op (the
+interceptor just passes calls through), so none of it needs a `BuildConfig.DEBUG` check.
 
 ### Network inspector and mocks
 
