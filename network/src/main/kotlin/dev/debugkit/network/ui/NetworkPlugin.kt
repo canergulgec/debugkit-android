@@ -15,14 +15,30 @@ import dev.debugkit.network.internal.MockRule
 import dev.debugkit.network.internal.MockRuleStore
 import dev.debugkit.network.internal.TransactionStore
 import dev.debugkit.plugin.DebugPlugin
+import dev.debugkit.plugin.DebugSection
+import dev.debugkit.plugin.DebugTile
+import dev.debugkit.ui.DebugTone
 
 /** The Network screen: a live list of calls, one call's details, and "mock this response". */
 internal object NetworkPlugin : DebugPlugin {
 
     override val id: String = "debugkit.network"
-    override val title: String = "Network"
+    override val title: String = "Requests"
     override val summary: String = "HTTP requests and responses"
     override val order: Int = 10
+    override val section: DebugSection = DebugSection.Network
+
+    @Composable
+    override fun tile(): DebugTile {
+        val calls by TransactionStore.summaries.collectAsStateWithLifecycle(initialValue = emptyList())
+        val failed = calls.count { it.error != null || (it.responseCode ?: 0) >= 400 }
+        return DebugTile(
+            label = "Network",
+            value = calls.size.toString(),
+            note = if (failed == 0) "no failures" else "$failed failed",
+            tone = if (failed == 0) DebugTone.Neutral else DebugTone.Error,
+        )
+    }
 
     @Composable
     override fun Content() {

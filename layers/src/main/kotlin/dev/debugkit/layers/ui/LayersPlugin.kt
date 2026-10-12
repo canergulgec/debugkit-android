@@ -24,13 +24,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +55,10 @@ import dev.debugkit.layers.internal.LayerSnapshot
 import dev.debugkit.layers.internal.Measurer
 import dev.debugkit.layers.internal.SnapshotStore
 import dev.debugkit.plugin.DebugPlugin
+import dev.debugkit.plugin.DebugSection
+import dev.debugkit.ui.DebugKitChip
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitSegments
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,6 +71,7 @@ internal object LayersPlugin : DebugPlugin {
     override val title: String = "Layers"
     override val summary: String = "Inspect the screen you opened DebugKit from, in 2D or 3D"
     override val order: Int = 30
+    override val section: DebugSection = DebugSection.Test
 
     @Composable
     override fun Content() {
@@ -80,7 +82,7 @@ internal object LayersPlugin : DebugPlugin {
                     text = "No screen captured yet.\nOpen DebugKit from the screen you want to inspect, by shaking " +
                         "the device or with your app's DebugKit button. That screen is captured at that moment.",
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = DebugKitColors.TextSecondary,
                 )
             }
             return
@@ -138,11 +140,11 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
                 Text(
                     "The screenshot could not be taken; showing outlines only.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = DebugKitColors.Error,
                 )
             }
             Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                modifier = Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -222,7 +224,7 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
                         text = "Showing $shown of ${snapshot.nodes.size} elements. Raise the left handle to hide " +
                             "containers, lower the right one to hide inner elements.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DebugKitColors.TextSecondary,
                     )
                 }
             }
@@ -249,10 +251,12 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
                 ColorPanel(current = live, history = colorHistory)
             }
             LayersMode.Select, LayersMode.ThreeD -> {
-                PrimaryTabRow(selectedTabIndex = tab) {
-                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Properties") })
-                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Tree") })
-                }
+                DebugKitSegments(
+                    options = listOf("Properties", "Tree"),
+                    selected = tab,
+                    onSelect = { tab = it },
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                )
                 Box(Modifier.fillMaxWidth().weight(0.8f)) {
                     if (tab == 0) {
                         Properties(snapshot, selected, onSelect = { selectedId = it.id })
@@ -273,7 +277,7 @@ private fun ModeChip(
     enabled: Boolean = true,
     onSelect: (LayersMode) -> Unit,
 ) {
-    FilterChip(selected = current == value, onClick = { onSelect(value) }, enabled = enabled, label = { Text(label) })
+    DebugKitChip(label = label, selected = current == value, onClick = { onSelect(value) }, enabled = enabled)
 }
 
 @Composable
@@ -284,7 +288,7 @@ private fun Properties(snapshot: LayerSnapshot, node: LayerNode?, onSelect: (Lay
             Text(
                 "Tap an element on the screen above, or pick one under Tree.",
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DebugKitColors.TextSecondary,
             )
         }
         return
@@ -295,7 +299,7 @@ private fun Properties(snapshot: LayerSnapshot, node: LayerNode?, onSelect: (Lay
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 snapshot.ancestors(node).takeLast(MAX_PATH).forEach { ancestor ->
                     TextButton(onClick = { onSelect(ancestor) }) { Text(ancestor.name, maxLines = 1) }
-                    Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("›", color = DebugKitColors.TextSecondary)
                 }
                 Text(node.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 8.dp))
             }
@@ -324,7 +328,7 @@ private fun Tree(snapshot: LayerSnapshot, selected: LayerNode?, onSelect: (Layer
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                    .background(if (isSelected) DebugKitColors.Selected else Color.Transparent)
                     .clickable { onSelect(node) }
                     .padding(start = (8 + (node.depth * INDENT_DP).coerceAtMost(MAX_INDENT_DP)).dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -336,7 +340,7 @@ private fun Tree(snapshot: LayerSnapshot, selected: LayerNode?, onSelect: (Layer
                     Text(
                         text = "  $it",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DebugKitColors.TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

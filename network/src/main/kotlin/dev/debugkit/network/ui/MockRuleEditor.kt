@@ -29,7 +29,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +36,8 @@ import dev.debugkit.network.internal.JsonFormatter
 import dev.debugkit.network.internal.MockErrorKind
 import dev.debugkit.network.internal.MockRule
 import dev.debugkit.network.internal.MockType
+import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.DebugKitSubpage
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -72,6 +73,7 @@ internal fun MockRuleEditor(
     }
     val bodyIsJson = remember(body) { isJson(body) }
     val showJsonWarning = type == MockType.Replace && "json" in contentType && body.isNotBlank() && !bodyIsJson
+    DebugKitSubpage(if (onDelete == null) "New mock rule" else "Edit mock rule")
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
@@ -98,7 +100,7 @@ internal fun MockRuleEditor(
             onValueChange = { pattern = it },
             label = { Text("URL pattern") },
             supportingText = { Text("* matches anything. The query string is ignored unless the pattern contains ?.") },
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = DebugKitFonts.Mono),
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -138,7 +140,7 @@ internal fun MockRuleEditor(
                     onValueChange = { body = it },
                     label = { Text("Body") },
                     minLines = 8,
-                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {

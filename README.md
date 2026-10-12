@@ -41,6 +41,17 @@ DebugKit.install(this) {
 Open it from your own UI with `DebugKit.open(context)`. In release builds the `noop` module
 provides the same API with empty implementations, so nothing ships to users.
 
+DebugKit always uses its own dark theme, whatever the app's. Its tools are grouped into tabs so
+related ones sit together:
+
+| Tab | Pages |
+|---|---|
+| **Home** | Environment, counts (failed calls, active mocks, log errors, analytics problems, flag overrides), the last crash, quick actions |
+| **Network** | Requests, Mocks |
+| **Activity** | Logs, Crashes, Analytics |
+| **Test** | Deep Links, Push, Layers |
+| **App** | Environment, Feature Flags, Quick Actions, App Info |
+
 ### Environments, feature flags and quick actions
 
 ```kotlin
@@ -212,7 +223,7 @@ permission, which is added to debug builds only. Turn it off with `showNotificat
 
 ### Mock responses
 
-Under **Mock Responses**, or from any call's **Mock response** button, create rules that answer
+Under **Network → Mocks**, or from any call's **Mock** button, create rules that answer
 matching calls without hitting the server:
 
 - **Custom response**: any status code, content type and body.
@@ -243,11 +254,19 @@ Add your own screen from debug-only code:
 DebugKit.registerPlugin(object : DebugPlugin {
     override val id = "my-app.session"
     override val title = "Session"
+    override val section = DebugSection.App // the tab it appears in; App by default
 
     @Composable
     override fun Content() { /* ... */ }
+
+    // Optional: a count on Home.
+    @Composable
+    override fun tile() = DebugTile(label = "Session", value = "3", note = "active users")
 })
 ```
+
+`dev.debugkit.ui` has the building blocks DebugKit's own screens use (cards, pills, chips,
+search field, colors and fonts), so a custom screen can look like the rest.
 
 ## Developing against a local app
 
@@ -266,4 +285,5 @@ Push a git tag (e.g. `0.1.0`). JitPack builds it on the first request.
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+Apache 2.0. See [LICENSE](LICENSE). Bundled fonts: IBM Plex Sans and JetBrains Mono, under the
+SIL Open Font License (see [third_party_licenses](third_party_licenses)).

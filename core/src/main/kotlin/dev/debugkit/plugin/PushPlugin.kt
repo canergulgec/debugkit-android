@@ -22,15 +22,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +51,11 @@ import dev.debugkit.internal.push.PushStore
 import dev.debugkit.internal.push.PushTemplate
 import dev.debugkit.internal.push.ReceivedPush
 import dev.debugkit.internal.push.TestPushSender
+import dev.debugkit.ui.DebugKitButton
+import dev.debugkit.ui.DebugKitCard
+import dev.debugkit.ui.DebugKitChip
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitFonts
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,6 +67,7 @@ internal object PushPlugin : DebugPlugin {
     override val id: String = "debugkit.push"
     override val title: String = "Push"
     override val order: Int = 23
+    override val section: DebugSection = DebugSection.Test
 
     override val summary: String
         get() = when (val count = PushStore.received.size) {
@@ -115,7 +117,12 @@ internal object PushPlugin : DebugPlugin {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { SectionHeader(if (PushStore.received.isEmpty()) "Received" else "Received (${PushStore.received.size})") }
                     if (PushStore.received.isNotEmpty()) {
-                        TextButton(onClick = PushStore::clearReceived, modifier = Modifier.padding(end = 8.dp, top = 16.dp)) { Text("Clear") }
+                        Text(
+                            "Clear",
+                            color = DebugKitColors.Accent,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(end = 20.dp, top = 12.dp).clickable(onClick = PushStore::clearReceived),
+                        )
                     }
                 }
             }
@@ -124,8 +131,8 @@ internal object PushPlugin : DebugPlugin {
                     Text(
                         "None yet. Pushes appear here when the app calls DebugKit.recordPush in its messaging service.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = DebugKitColors.TextSecondary,
+                        modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }
             }
@@ -140,7 +147,6 @@ internal object PushPlugin : DebugPlugin {
                         scope.launch { listState.animateScrollToItem(sendHeaderIndex) }
                     },
                 )
-                HorizontalDivider()
             }
             item { SectionHeader("Send a test notification") }
             item {
@@ -153,7 +159,7 @@ internal object PushPlugin : DebugPlugin {
                         label = { Text("Data, one key=value per line") },
                         placeholder = { Text("type=order\norderId=123") },
                         minLines = 2,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = DebugKitFonts.Mono),
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
@@ -163,16 +169,16 @@ internal object PushPlugin : DebugPlugin {
                         placeholder = { Text("myapp://order/123") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = DebugKitFonts.Mono),
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text("When tapped", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("When tapped", style = MaterialTheme.typography.labelLarge, color = DebugKitColors.TextSecondary)
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(delivery == PushDelivery.LaunchWithData, { delivery = PushDelivery.LaunchWithData }, { Text("Open app with data") })
-                        FilterChip(delivery == PushDelivery.OpenLink, { delivery = PushDelivery.OpenLink }, { Text("Open link") }, enabled = link.isNotBlank())
+                        DebugKitChip("Open app with data", delivery == PushDelivery.LaunchWithData, { delivery = PushDelivery.LaunchWithData })
+                        DebugKitChip("Open link", delivery == PushDelivery.OpenLink, { delivery = PushDelivery.OpenLink }, enabled = link.isNotBlank())
                         if (setup.handler != null) {
-                            FilterChip(delivery == PushDelivery.AppHandler, { delivery = PushDelivery.AppHandler }, { Text("App's handler") })
+                            DebugKitChip("App's handler", delivery == PushDelivery.AppHandler, { delivery = PushDelivery.AppHandler })
                         }
                     }
                     Text(
@@ -184,24 +190,27 @@ internal object PushPlugin : DebugPlugin {
                                 "No notification is shown: the data goes straight to the app's push code, as if it arrived while the app is open."
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DebugKitColors.TextSecondary,
                     )
-                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    error?.let { Text(it, color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall) }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Button(
+                        DebugKitButton(
+                            "Send",
+                            primary = true,
                             onClick = {
                                 error = TestPushSender.send(context, current(), delivery)
                                 if (error == null && delivery == PushDelivery.AppHandler) {
                                     Toast.makeText(context, "Sent to the app's handler", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                        ) { Text("Send") }
-                        TextButton(
+                        )
+                        DebugKitButton(
+                            "Save as template",
                             onClick = {
                                 PushStore.saveTemplate(current().copy(title = title.trim().ifEmpty { "Untitled" }))
                                 Toast.makeText(context, "Saved as a template", Toast.LENGTH_SHORT).show()
                             },
-                        ) { Text("Save as template") }
+                        )
                     }
                 }
             }
@@ -213,32 +222,35 @@ internal object PushPlugin : DebugPlugin {
                     Text(
                         "Tap to fill the form. Long-press one you saved to delete it.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = DebugKitColors.TextSecondary,
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
                     )
                 }
-                items(templates) { template ->
-                    val saved = template in PushStore.savedTemplates
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = { fill(template) },
-                                onLongClick = if (saved) {
-                                    { PushStore.deleteTemplate(template) }
-                                } else {
-                                    null
-                                },
+                item {
+                    CardGroup(templates) { template ->
+                        val saved = template in PushStore.savedTemplates
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .combinedClickable(
+                                    onClick = { fill(template) },
+                                    onLongClick = if (saved) {
+                                        { PushStore.deleteTemplate(template) }
+                                    } else {
+                                        null
+                                    },
+                                )
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                        ) {
+                            Text(template.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = template.link ?: PushData.format(template.data).replace('\n', ' ').ifEmpty { template.body },
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono),
+                                color = DebugKitColors.TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                    ) {
-                        Text(template.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            text = template.link ?: PushData.format(template.data).replace('\n', ' ').ifEmpty { template.body },
-                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        }
                     }
                 }
             }
@@ -254,8 +266,8 @@ internal object PushPlugin : DebugPlugin {
             Text(
                 "Add token { … } to push { } in DebugKit.install to show it here.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                color = DebugKitColors.TextSecondary,
+                modifier = Modifier.padding(horizontal = 20.dp),
             )
             return
         }
@@ -269,18 +281,22 @@ internal object PushPlugin : DebugPlugin {
                 .onSuccess { token = it ?: "" }
                 .onFailure { failure = it.message ?: it.toString() }
         }
-        Column(Modifier.padding(horizontal = 16.dp)) {
-            when {
-                failure != null -> Text("Could not get the token: $failure", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                token == null -> Text("Loading…", style = MaterialTheme.typography.bodySmall)
-                token!!.isEmpty() -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
-                else -> Text(token!!, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), maxLines = 3, overflow = TextOverflow.Ellipsis)
-            }
-            Row {
-                TextButton(onClick = { token?.takeIf { it.isNotEmpty() }?.let { copyToClipboard(context, "Push token", it) } }, enabled = !token.isNullOrEmpty()) {
-                    Text("Copy")
+        DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                when {
+                    failure != null -> Text("Could not get the token: $failure", color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall)
+                    token == null -> Text("Loading…", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
+                    token!!.isEmpty() -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
+                    else -> Text(token!!, style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono), maxLines = 3, overflow = TextOverflow.Ellipsis)
                 }
-                TextButton(onClick = { reload++ }) { Text("Refresh") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DebugKitButton(
+                        "Copy",
+                        onClick = { token?.takeIf { it.isNotEmpty() }?.let { copyToClipboard(context, "Push token", it) } },
+                        enabled = !token.isNullOrEmpty(),
+                    )
+                    DebugKitButton("Refresh", onClick = { reload++ })
+                }
             }
         }
     }
@@ -288,26 +304,29 @@ internal object PushPlugin : DebugPlugin {
     @Composable
     private fun ReceivedRow(push: ReceivedPush, expanded: Boolean, onToggle: () -> Unit, onResend: () -> Unit) {
         val context = LocalContext.current
-        Column(Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text(
-                text = push.title ?: if (push.body == null) "Data-only message" else "(no title)",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            push.body?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = if (expanded) Int.MAX_VALUE else 2) }
-            if (push.data.isNotEmpty()) {
+        DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), onClick = onToggle) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
-                    text = if (expanded) PushData.format(push.data) else PushData.format(push.data).replace('\n', ' '),
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                    maxLines = if (expanded) Int.MAX_VALUE else 1,
-                    overflow = TextOverflow.Ellipsis,
+                    text = push.title ?: if (push.body == null) "Data-only message" else "(no title)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
-            }
-            Text(TIME.format(Date(push.timestamp)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (expanded) {
-                Row {
-                    TextButton(onClick = onResend) { Text("Send again as a test") }
-                    TextButton(onClick = { copyToClipboard(context, "Push data", PushData.format(push.data)) }) { Text("Copy data") }
+                push.body?.let { Text(it, style = MaterialTheme.typography.bodySmall, maxLines = if (expanded) Int.MAX_VALUE else 2) }
+                if (push.data.isNotEmpty()) {
+                    Text(
+                        text = if (expanded) PushData.format(push.data) else PushData.format(push.data).replace('\n', ' '),
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono),
+                        color = DebugKitColors.Accent,
+                        maxLines = if (expanded) Int.MAX_VALUE else 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Text(TIME.format(Date(push.timestamp)), style = MaterialTheme.typography.labelSmall, color = DebugKitColors.TextFaint)
+                if (expanded) {
+                    Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DebugKitButton("Send again as a test", onClick = onResend)
+                        DebugKitButton("Copy data", onClick = { copyToClipboard(context, "Push data", PushData.format(push.data)) })
+                    }
                 }
             }
         }
@@ -330,17 +349,19 @@ internal object PushPlugin : DebugPlugin {
         if (canPost) return
         val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !denied
         Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            color = DebugKitColors.WarningContainer,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Notifications are off for this app, so test notifications cannot be shown.",
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f).padding(vertical = 12.dp),
+                    color = DebugKitColors.Warning,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
                 )
-                TextButton(
+                DebugKitButton(
+                    if (canAsk) "Allow" else "Settings",
                     onClick = {
                         if (canAsk) {
                             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -351,7 +372,7 @@ internal object PushPlugin : DebugPlugin {
                             )
                         }
                     },
-                ) { Text(if (canAsk) "Allow" else "Settings") }
+                )
             }
         }
     }

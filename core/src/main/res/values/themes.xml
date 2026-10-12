@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window theme only; colors come from DebugKitTheme in Compose. -->
-    <style name="Theme.DebugKit" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Window theme only; everything else comes from DebugKitTheme in Compose. Dark so the
+         window never flashes white before the first frame. -->
+    <style name="Theme.DebugKit" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/debugkit_background</item>
+    </style>
+
+    <color name="debugkit_background">#0B0E13</color>
 </resources>

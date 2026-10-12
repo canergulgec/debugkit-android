@@ -25,13 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.debugkit.layers.internal.LayerNode
 import dev.debugkit.layers.internal.Measurement
 import dev.debugkit.layers.internal.Side
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitFonts
 import java.util.Locale
 
 /** A color read from the screenshot, and the element it belongs to. */
@@ -73,7 +74,7 @@ internal fun MeasurePanel(
             Text(
                 "Now tap a second element.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DebugKitColors.TextSecondary,
                 modifier = Modifier.padding(top = 8.dp),
             )
             return@Column
@@ -116,7 +117,7 @@ private fun ElementLine(color: Int, node: LayerNode, density: Float) {
         Text(
             text = "  ${formatDp(node.bounds.width, density).removeSuffix(" dp")} × ${formatDp(node.bounds.height, density)}",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = DebugKitColors.TextSecondary,
         )
     }
 }
@@ -145,10 +146,10 @@ internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
                 Swatch(pick.color, 56)
                 Spacer(Modifier.width(16.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(pick.hex, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Monospace))
-                    Text(pick.rgb, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(pick.hex, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = DebugKitFonts.Mono))
+                    Text(pick.rgb, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
                     pick.element?.let {
-                        Text("on $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        Text("on $it", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary, maxLines = 1)
                     }
                 }
                 TextButton(onClick = { copy(context, "Color", pick.hex) }) { Text("Copy") }
@@ -158,7 +159,7 @@ internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
             Text(
                 "Recent · tap to copy",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DebugKitColors.TextSecondary,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
             )
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -168,7 +169,7 @@ internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
                         modifier = Modifier.clickable { copy(context, "Color", pick.hex) },
                     ) {
                         Swatch(pick.color, 36)
-                        Text(pick.hex, style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace))
+                        Text(pick.hex, style = MaterialTheme.typography.labelSmall.copy(fontFamily = DebugKitFonts.Mono))
                     }
                 }
             }
@@ -183,13 +184,13 @@ private fun Swatch(color: Int, sizeDp: Int) {
         Modifier
             .size(sizeDp.dp)
             .background(Color(color), RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+            .border(1.dp, DebugKitColors.Border, RoundedCornerShape(8.dp)),
     )
 }
 
 @Composable
 private fun Hint(text: String) {
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, textAlign = TextAlign.Center, color = DebugKitColors.TextSecondary)
     }
 }

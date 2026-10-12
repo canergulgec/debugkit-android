@@ -8,29 +8,22 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,9 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -52,6 +44,14 @@ import androidx.compose.ui.unit.sp
 import dev.debugkit.logs.internal.LogEntry
 import dev.debugkit.logs.internal.LogFormat
 import dev.debugkit.logs.internal.LogStore
+import dev.debugkit.ui.DebugKitChip
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitEmpty
+import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.DebugKitPill
+import dev.debugkit.ui.DebugKitSearchField
+import dev.debugkit.ui.DebugKitTitleButton
+import dev.debugkit.ui.DebugTone
 import kotlinx.coroutines.delay
 
 /** Refresh at most this often while logs pour in, so the list stays readable and cheap. */
@@ -81,52 +81,43 @@ internal fun LogsScreen() {
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedTextField(
+            DebugKitSearchField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Search messages and tags") },
-                singleLine = true,
+                placeholder = "Search messages and tags",
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = LogStore::clear, enabled = entries.isNotEmpty()) { Text("Clear") }
+            DebugKitTitleButton("Share", enabled = visible.isNotEmpty()) { share(context, visible) }
+            DebugKitTitleButton("Clear", enabled = entries.isNotEmpty(), onClick = LogStore::clear)
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LEVELS.forEach { priority ->
-                FilterChip(
+                DebugKitChip(
+                    label = LogFormat.level(priority) + if (priority > Log.VERBOSE) "+" else "",
                     selected = minPriority == priority,
                     onClick = { minPriority = priority },
-                    label = { Text(LogFormat.level(priority) + if (priority > Log.VERBOSE) "+" else "") },
+                    monospace = true,
                 )
             }
             tag?.let { selectedTag ->
-                InputChip(
-                    selected = true,
-                    onClick = { tag = null },
-                    label = { Text("$selectedTag  ✕") },
-                )
+                DebugKitChip(label = "$selectedTag  ✕", selected = true, onClick = { tag = null })
             }
-            TextButton(onClick = { share(context, visible) }, enabled = visible.isNotEmpty()) { Text("Share") }
         }
 
         if (visible.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (entries.isEmpty()) "No logs yet" else "No logs match the filters",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            DebugKitEmpty(if (entries.isEmpty()) "No logs yet" else "No logs match the filters")
             return
         }
 
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
             items(visible, key = { it.id }) { entry ->
                 LogRow(
                     entry = entry,
@@ -135,7 +126,7 @@ internal fun LogsScreen() {
                     onTagClick = { tag = entry.tag },
                     onCopy = { copy(context, LogFormat.line(entry)) },
                 )
-                HorizontalDivider()
+                HorizontalDivider(color = DebugKitColors.Divider, modifier = Modifier.padding(horizontal = 16.dp))
             }
         }
     }
@@ -154,23 +145,23 @@ private fun LogRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onToggle, onLongClick = onCopy)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        LevelBadge(entry.priority)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        DebugKitPill(LogFormat.level(entry.priority), levelTone(entry.priority), minWidth = 24)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = LogFormat.time(entry.timestamp),
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 11.sp),
+                    color = DebugKitColors.TextFaint,
                 )
                 entry.tag?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DebugKitColors.Accent,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.clickable(onClick = onTagClick),
@@ -179,7 +170,8 @@ private fun LogRow(
             }
             Text(
                 text = entry.message,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 16.sp),
+                style = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp, lineHeight = 17.sp),
+                color = if (entry.priority >= Log.ERROR) DebugKitColors.Error else DebugKitColors.Text,
                 maxLines = if (expanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -187,24 +179,13 @@ private fun LogRow(
     }
 }
 
-@Composable
-private fun LevelBadge(priority: Int) {
-    Box(
-        modifier = Modifier.size(22.dp).background(levelColor(priority), RoundedCornerShape(4.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(LogFormat.level(priority), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-    }
-}
-
-/** Same mid-tone palette as the Network status badges: white text reads in light and dark mode. */
-private fun levelColor(priority: Int): Color = when (priority) {
-    Log.VERBOSE -> Color(0xFF757575)
-    Log.DEBUG -> Color(0xFF1976D2)
-    Log.INFO -> Color(0xFF388E3C)
-    Log.WARN -> Color(0xFFEF6C00)
-    Log.ERROR -> Color(0xFFD32F2F)
-    else -> Color(0xFF7B1FA2)
+private fun levelTone(priority: Int): DebugTone = when (priority) {
+    Log.VERBOSE -> DebugTone.Neutral
+    Log.DEBUG -> DebugTone.Info
+    Log.INFO -> DebugTone.Good
+    Log.WARN -> DebugTone.Warning
+    Log.ERROR -> DebugTone.Error
+    else -> DebugTone.Override
 }
 
 private val LEVELS = listOf(Log.VERBOSE, Log.DEBUG, Log.INFO, Log.WARN, Log.ERROR)

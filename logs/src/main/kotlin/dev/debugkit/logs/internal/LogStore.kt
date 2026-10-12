@@ -21,19 +21,32 @@ internal object LogStore {
     /** Changes whenever logs are added or cleared. */
     val version: StateFlow<Long> = changes.asStateFlow()
 
+    /** Errors (and asserts) in the buffer, kept as logs come and go so reading it is O(1). */
+    @Volatile
+    var errorCount: Int = 0
+        private set
+
+    val size: Int get() = synchronized(buffer) { buffer.size }
+
     fun add(entry: LogEntry) {
         val id = nextId.incrementAndGet()
         synchronized(buffer) {
-            if (buffer.size == MAX_ENTRIES) buffer.removeFirst()
+            if (buffer.size == MAX_ENTRIES && buffer.removeFirst().isError) errorCount--
             buffer.addLast(entry.copy(id = id))
+            if (entry.isError) errorCount++
         }
         changes.value = id
     }
 
+    private val LogEntry.isError: Boolean get() = priority >= android.util.Log.ERROR
+
     fun snapshot(): List<LogEntry> = synchronized(buffer) { buffer.toList() }
 
     fun clear() {
-        synchronized(buffer) { buffer.clear() }
+        synchronized(buffer) {
+            buffer.clear()
+            errorCount = 0
+        }
         changes.value = -nextId.incrementAndGet()
     }
 }

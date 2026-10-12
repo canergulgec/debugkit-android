@@ -1,8 +1,10 @@
 package dev.debugkit.ui
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
@@ -20,7 +22,11 @@ internal class DebugKitActivity : ComponentActivity() {
     private var requestedPluginId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Light status and navigation bar icons on DebugKit's dark background, whatever the system theme.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
         super.onCreate(savedInstanceState)
         // On recreation the UI restores its own selection; only honour a fresh launch.
         if (savedInstanceState == null) requestedPluginId = intent.getStringExtra(EXTRA_PLUGIN_ID)

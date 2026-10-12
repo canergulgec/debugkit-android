@@ -2,11 +2,11 @@ package dev.debugkit.plugin
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,15 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -34,15 +27,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.debugkit.internal.analytics.AnalyticsEvent
 import dev.debugkit.internal.analytics.AnalyticsFormat
 import dev.debugkit.internal.analytics.AnalyticsStore
 import dev.debugkit.internal.analytics.UserProperty
+import dev.debugkit.ui.DebugKitButton
+import dev.debugkit.ui.DebugKitCard
+import dev.debugkit.ui.DebugKitChip
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitEmpty
+import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.DebugKitPill
+import dev.debugkit.ui.DebugKitSearchField
+import dev.debugkit.ui.DebugKitSubpage
+import dev.debugkit.ui.DebugKitTitleButton
+import dev.debugkit.ui.DebugTone
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,6 +58,7 @@ internal object AnalyticsPlugin : DebugPlugin {
     override val id: String = "debugkit.analytics"
     override val title: String = "Analytics"
     override val order: Int = 14
+    override val section: DebugSection = DebugSection.Activity
 
     override val summary: String
         get() {
@@ -68,7 +71,19 @@ internal object AnalyticsPlugin : DebugPlugin {
             }
         }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    override fun tile(): DebugTile? {
+        val events = AnalyticsStore.events
+        if (events.isEmpty()) return null
+        val problems = events.count { it.issues.isNotEmpty() || it.duplicate }
+        return DebugTile(
+            label = "Analytics",
+            value = events.size.toString(),
+            note = if (problems == 0) "events, no problems" else "$problems with problems",
+            tone = if (problems == 0) DebugTone.Neutral else DebugTone.Warning,
+        )
+    }
+
     @Composable
     override fun Content() {
         var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -82,9 +97,9 @@ internal object AnalyticsPlugin : DebugPlugin {
             return
         }
         Column(Modifier.fillMaxSize()) {
-            PrimaryTabRow(selectedTabIndex = tab) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Events") })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("User properties") })
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DebugKitChip("Events", selected = tab == 0, onClick = { tab = 0 })
+                DebugKitChip("User properties", selected = tab == 1, onClick = { tab = 1 })
             }
             if (tab == 0) EventList(onSelect = { selectedId = it.id }) else UserProperties()
         }
@@ -103,21 +118,21 @@ internal object AnalyticsPlugin : DebugPlugin {
         val showProvider = events.map { it.provider }.distinct().size > 1
 
         Column(Modifier.fillMaxSize()) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                DebugKitSearchField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Filter by event name") },
-                    singleLine = true,
+                    placeholder = "Filter by event name",
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = AnalyticsStore::clear, enabled = events.isNotEmpty()) { Text("Clear") }
+                DebugKitTitleButton("Clear", enabled = events.isNotEmpty(), onClick = AnalyticsStore::clear)
             }
-            Row(Modifier.padding(horizontal = 8.dp)) {
-                TextButton(onClick = { problemsOnly = !problemsOnly }) {
-                    Text(if (problemsOnly) "Showing problems only · show all" else "Show problems only")
-                }
-            }
+            DebugKitChip(
+                label = "Problems only",
+                selected = problemsOnly,
+                onClick = { problemsOnly = !problemsOnly },
+                modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 10.dp),
+            )
             if (visible.isEmpty()) {
                 Placeholder(
                     when {
@@ -128,39 +143,45 @@ internal object AnalyticsPlugin : DebugPlugin {
                 )
                 return
             }
-            LazyColumn(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 items(visible, key = { it.id }) { event ->
-                    Column(
-                        modifier = Modifier.fillMaxWidth().clickable { onSelect(event) }.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    DebugKitCard(Modifier.fillMaxWidth(), onClick = { onSelect(event) }) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = event.name,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = DebugKitFonts.Mono),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                )
+                                if (event.duplicate) DebugKitPill("SENT TWICE", DebugTone.Warning, monospace = false)
+                                if (event.issues.isNotEmpty()) DebugKitPill(if (event.issues.size == 1) "1 ISSUE" else "${event.issues.size} ISSUES", DebugTone.Error, monospace = false)
+                            }
+                            if (event.params.isNotEmpty()) {
+                                Text(
+                                    text = AnalyticsFormat.preview(event.params),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono),
+                                    color = DebugKitColors.TextSecondary,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                             Text(
-                                text = event.name,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            if (event.duplicate) Tag("SENT TWICE", WARNING)
-                            if (event.issues.isNotEmpty()) Tag(if (event.issues.size == 1) "1 ISSUE" else "${event.issues.size} ISSUES", ERROR)
-                        }
-                        if (event.params.isNotEmpty()) {
-                            Text(
-                                text = AnalyticsFormat.preview(event.params),
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
+                                text = TIME.format(Date(event.timestamp)) + if (showProvider) "  ·  ${event.provider}" else "",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = DebugKitColors.TextFaint,
                             )
                         }
-                        Text(
-                            text = TIME.format(Date(event.timestamp)) + if (showProvider) "  ·  ${event.provider}" else "",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
-                    HorizontalDivider()
                 }
             }
         }
@@ -169,20 +190,19 @@ internal object AnalyticsPlugin : DebugPlugin {
     @Composable
     private fun EventDetail(event: AnalyticsEvent) {
         val context = LocalContext.current
-        LazyColumn(Modifier.fillMaxSize()) {
+        DebugKitSubpage("Event")
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
             item {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(event.name, style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Monospace))
+                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(event.name, style = MaterialTheme.typography.titleMedium.copy(fontFamily = DebugKitFonts.Mono))
                     Text(
                         "${event.provider} · ${TIME.format(Date(event.timestamp))} · ${event.params.size} parameter${if (event.params.size == 1) "" else "s"}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DebugKitColors.TextSecondary,
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState())) {
-                        TextButton(onClick = { copyToClipboard(context, "Event name", event.name) }) { Text("Copy name") }
-                        TextButton(onClick = { copyToClipboard(context, "Parameters", AnalyticsFormat.json(event.params)) }) {
-                            Text("Copy as JSON")
-                        }
+                    Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DebugKitButton("Copy name", onClick = { copyToClipboard(context, "Event name", event.name) })
+                        DebugKitButton("Copy as JSON", onClick = { copyToClipboard(context, "Parameters", AnalyticsFormat.json(event.params)) })
                     }
                 }
             }
@@ -195,19 +215,19 @@ internal object AnalyticsPlugin : DebugPlugin {
                     Text(
                         "Firebase drops or cuts data that breaks these limits without reporting an error.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = DebugKitColors.TextSecondary,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                 }
             }
             item { SectionHeader("Parameters") }
             if (event.params.isEmpty()) item { Placeholder("No parameters.") }
-            items(event.params.entries.toList(), key = { it.key }) { (key, value) ->
-                ListItem(
-                    overlineContent = { Text("$key · ${AnalyticsFormat.type(value)}") },
-                    headlineContent = { Text(AnalyticsFormat.value(value), fontFamily = FontFamily.Monospace) },
-                    modifier = Modifier.clickable { copyToClipboard(context, key, AnalyticsFormat.value(value)) },
-                )
+            if (event.params.isNotEmpty()) {
+                item {
+                    CardGroup(event.params.entries.toList()) { (key, value) ->
+                        ValueRow("$key · ${AnalyticsFormat.type(value)}", AnalyticsFormat.value(value), onClick = { copyToClipboard(context, key, AnalyticsFormat.value(value)) })
+                    }
+                }
             }
         }
     }
@@ -221,26 +241,23 @@ internal object AnalyticsPlugin : DebugPlugin {
             return
         }
         val showProvider = properties.map { it.provider }.distinct().size > 1
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             items(properties, key = { "${it.provider}/${it.name}" }) { property: UserProperty ->
-                Column(Modifier.fillMaxWidth().clickable { copyToClipboard(context, property.name, property.value.orEmpty()) }) {
-                    ListItem(
-                        overlineContent = {
-                            Text(property.name + (if (showProvider) " · ${property.provider}" else "") + " · set ${TIME.format(Date(property.timestamp))}")
-                        },
-                        headlineContent = { Text(property.value ?: "(cleared)", fontFamily = FontFamily.Monospace) },
+                DebugKitCard(Modifier.fillMaxWidth()) {
+                    ValueRow(
+                        label = property.name + (if (showProvider) " · ${property.provider}" else "") + " · set ${TIME.format(Date(property.timestamp))}",
+                        value = property.value ?: "(cleared)",
+                        onClick = { copyToClipboard(context, property.name, property.value.orEmpty()) },
                     )
-                    property.issues.forEach { Warning(it, ERROR) }
+                    if (property.issues.isNotEmpty()) {
+                        Column(Modifier.padding(start = 0.dp, bottom = 8.dp)) { property.issues.forEach { Warning(it, ERROR) } }
+                    }
                 }
-                HorizontalDivider()
             }
-        }
-    }
-
-    @Composable
-    private fun Tag(text: String, color: Color) {
-        Box(Modifier.background(color, RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 1.dp)) {
-            Text(text, color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
         }
     }
 
@@ -248,18 +265,16 @@ internal object AnalyticsPlugin : DebugPlugin {
     private fun Warning(text: String, color: Color) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
             Box(Modifier.padding(top = 6.dp).background(color, RoundedCornerShape(50)).padding(4.dp))
-            Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 8.dp))
+            Text(text, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.padding(start = 8.dp))
         }
     }
 
     @Composable
     private fun Placeholder(text: String) {
-        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-            Text(text, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        DebugKitEmpty(text)
     }
 
-    private val ERROR = Color(0xFFD32F2F)
-    private val WARNING = Color(0xFFEF6C00)
+    private val ERROR = DebugKitColors.Error
+    private val WARNING = DebugKitColors.Warning
     private val TIME = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 }

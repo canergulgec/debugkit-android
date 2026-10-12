@@ -6,31 +6,33 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,14 +43,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,34 +63,63 @@ import dev.debugkit.network.internal.JsonColors
 import dev.debugkit.network.internal.JsonFormatter
 import dev.debugkit.network.internal.TransactionExport
 import dev.debugkit.network.internal.TransactionStatus
+import dev.debugkit.network.internal.host
 import dev.debugkit.network.internal.pathWithQuery
 import dev.debugkit.network.internal.status
+import dev.debugkit.ui.DebugKitButton
+import dev.debugkit.ui.DebugKitCard
+import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.DebugKitPill
+import dev.debugkit.ui.DebugKitSearchField
+import dev.debugkit.ui.DebugKitSegments
+import dev.debugkit.ui.DebugKitSubpage
+import dev.debugkit.ui.DebugTone
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun TransactionDetailScreen(tx: HttpTransaction, onCreateMock: () -> Unit) {
     val context = LocalContext.current
     var tab by rememberSaveable(tx.id) { mutableIntStateOf(0) }
+    DebugKitSubpage("Request")
 
     Column(Modifier.fillMaxSize()) {
-        Text(
-            text = "${tx.method} ${tx.pathWithQuery}",
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 3,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp)) {
-            TextButton(onClick = onCreateMock) { Text("Mock response") }
-            TextButton(onClick = { copy(context, "cURL", TransactionExport.toCurl(tx)) }) { Text("Copy cURL") }
-            TextButton(onClick = { copy(context, "URL", tx.url) }) { Text("Copy URL") }
-            TextButton(onClick = { share(context, tx) }) { Text("Share") }
-        }
-        PrimaryTabRow(selectedTabIndex = tab) {
-            TABS.forEachIndexed { index, title ->
-                Tab(selected = tab == index, onClick = { tab = index }, text = { Text(title) })
+        DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StatusBadge(tx, label = TransactionExport.statusText(tx))
+                    DebugKitPill(tx.method, DebugTone.Info)
+                    tx.protocol?.let { DebugKitPill(it, DebugTone.Neutral) }
+                    if (tx.mockRuleName != null) MockTag()
+                }
+                Text(tx.pathWithQuery, style = MONO.copy(fontSize = 15.sp, lineHeight = 21.sp), maxLines = 4, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = listOfNotNull(
+                        tx.host,
+                        TransactionExport.formatTime(tx.requestedAt),
+                        tx.durationMs?.let { "$it ms" },
+                        tx.responseBody?.let { TransactionExport.formatBytes(it.sizeBytes) },
+                    ).joinToString("  ·  "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DebugKitColors.TextSecondary,
+                )
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            DebugKitButton("Mock", onClick = onCreateMock, primary = true)
+            DebugKitButton("Copy cURL", onClick = { copy(context, "cURL", TransactionExport.toCurl(tx)) })
+            DebugKitButton("Copy URL", onClick = { copy(context, "URL", tx.url) })
+            DebugKitButton("Share", onClick = { share(context, tx) })
+        }
+        DebugKitSegments(
+            options = TABS,
+            selected = tab,
+            onSelect = { tab = it },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
         when (tab) {
             0 -> OverviewTab(tx)
             1 -> MessageTab(tx.requestHeaders, tx.requestBody)
@@ -98,9 +131,13 @@ internal fun TransactionDetailScreen(tx: HttpTransaction, onCreateMock: () -> Un
 @Composable
 private fun OverviewTab(tx: HttpTransaction) {
     SelectionContainer {
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
             items(TransactionExport.overview(tx), key = { it.first }) { (label, value) ->
-                ListItem(overlineContent = { Text(label) }, headlineContent = { Text(value) })
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(label, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
+                    Text(value, style = MONO)
+                }
+                HorizontalDivider(color = DebugKitColors.Divider)
             }
         }
     }
@@ -114,7 +151,7 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
             FormattedBody(lines = (pretty ?: text).lines(), isJson = pretty != null)
         }
     }
-    val colors = jsonColors()
+    val colors = remember { jsonColors() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -125,6 +162,8 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
     // Body lines come after the headers section: its title, one row per header (or a
     // placeholder), then the body title.
     val firstBodyItem = 2 + headers.size.coerceAtLeast(1)
+    // Wide enough for the largest line number.
+    val gutter = (formatted?.lines?.size?.toString()?.length ?: 1).let { (it * 8 + 14).dp }
 
     fun goTo(index: Int) {
         if (matches.isEmpty()) return
@@ -159,11 +198,11 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                 items(headers) { (name, value) ->
                     Text(
                         text = buildAnnotatedString {
-                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(name) }
+                            withStyle(SpanStyle(color = DebugKitColors.Accent)) { append(name) }
                             append(": ")
                             append(value)
                         },
-                        style = monospaceStyle(),
+                        style = codeStyle(),
                         modifier = Modifier.padding(vertical = 2.dp),
                     )
                 }
@@ -174,26 +213,35 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                     formatted == null -> item { Placeholder("(binary content, not shown)") }
                     else -> {
                         items(formatted.lines.size) { index ->
-                            val line = formatted.lines[index]
-                            val base = if (formatted.isJson) JsonFormatter.highlight(line, colors) else AnnotatedString(line)
-                            val lineMatches = matchesByLine[index]
-                            Text(
-                                text = if (lineMatches == null) {
-                                    base
-                                } else {
-                                    buildAnnotatedString {
-                                        append(base)
-                                        lineMatches.forEach { (matchIndex, match) ->
-                                            addStyle(
-                                                SpanStyle(background = if (matchIndex == current) CURRENT_MATCH else OTHER_MATCH, color = Color.Black),
-                                                match.start,
-                                                match.start + query.length,
-                                            )
+                            Row(Modifier.fillMaxWidth().background(DebugKitColors.Code)) {
+                                Text(
+                                    text = (index + 1).toString(),
+                                    style = codeStyle(),
+                                    color = DebugKitColors.TextFaint,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.width(gutter).padding(end = 10.dp),
+                                )
+                                val line = formatted.lines[index]
+                                val base = if (formatted.isJson) JsonFormatter.highlight(line, colors) else AnnotatedString(line)
+                                val lineMatches = matchesByLine[index]
+                                Text(
+                                    text = if (lineMatches == null) {
+                                        base
+                                    } else {
+                                        buildAnnotatedString {
+                                            append(base)
+                                            lineMatches.forEach { (matchIndex, match) ->
+                                                addStyle(
+                                                    SpanStyle(background = if (matchIndex == current) CURRENT_MATCH else OTHER_MATCH, color = DebugKitColors.OnAccent),
+                                                    match.start,
+                                                    match.start + query.length,
+                                                )
+                                            }
                                         }
-                                    }
-                                },
-                                style = monospaceStyle(),
-                            )
+                                    },
+                                    style = codeStyle(),
+                                )
+                            }
                         }
                         if (body.truncated) {
                             item { Placeholder("(truncated: only the first part of the body is shown)") }
@@ -216,67 +264,66 @@ private fun SearchBar(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    DebugKitSearchField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = "Search body",
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onNext() }),
     ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = { Text("Search body") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onNext() }),
-            modifier = Modifier.weight(1f),
-        )
         if (query.isNotBlank()) {
             Text(
                 text = if (position == null) "0/0" else "$position/$total",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (total == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 8.dp),
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = DebugKitFonts.Mono),
+                color = if (total == 0) DebugKitColors.Error else DebugKitColors.TextSecondary,
             )
-            TextButton(onClick = onPrevious, enabled = total > 0) { Text("▲") }
-            TextButton(onClick = onNext, enabled = total > 0) { Text("▼") }
+            SearchArrow("▲", "Previous match", enabled = total > 0, onClick = onPrevious)
+            SearchArrow("▼", "Next match", enabled = total > 0, onClick = onNext)
         }
     }
 }
 
-/** Yellow for every match and orange for the current one, on black text, readable in both themes. */
-private val OTHER_MATCH = Color(0xFFFFEB3B)
-private val CURRENT_MATCH = Color(0xFFFF9800)
+@Composable
+private fun SearchArrow(symbol: String, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(DebugKitColors.CardRaised)
+            .clickable(enabled = enabled, onClickLabel = description, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(symbol, fontSize = 11.sp, color = if (enabled) DebugKitColors.Text else DebugKitColors.TextFaint)
+    }
+}
+
+/** Amber for every match and the accent for the current one, on dark text. */
+private val OTHER_MATCH = DebugKitColors.Warning.copy(alpha = 0.55f)
+private val CURRENT_MATCH = DebugKitColors.Accent
 
 private fun LazyListScope.sectionHeader(title: String) = item {
     Text(
-        text = title,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, letterSpacing = 0.6.sp),
+        fontWeight = FontWeight.SemiBold,
+        color = DebugKitColors.TextSecondary,
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
     )
 }
 
 @Composable
 private fun Placeholder(text: String) {
-    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    Text(text, color = DebugKitColors.TextSecondary, style = MaterialTheme.typography.bodySmall)
 }
 
-@Composable
-private fun monospaceStyle() = MaterialTheme.typography.bodySmall.copy(
-    fontFamily = FontFamily.Monospace,
-    fontSize = 12.sp,
-    lineHeight = 17.sp,
-)
+private fun codeStyle() = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp, lineHeight = 18.sp)
 
-/** GitHub's syntax palette, which keeps contrast on both light and dark surfaces. */
-@Composable
-private fun jsonColors(): JsonColors {
-    val punctuation = MaterialTheme.colorScheme.onSurface
-    return if (isSystemInDarkTheme()) {
-        JsonColors(Color(0xFFD2A8FF), Color(0xFF7EE787), Color(0xFF79C0FF), Color(0xFFFF7B72), punctuation)
-    } else {
-        JsonColors(Color(0xFF8250DF), Color(0xFF116329), Color(0xFF0550AE), Color(0xFFCF222E), punctuation)
-    }
-}
+private val MONO = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 13.sp, lineHeight = 18.sp)
+
+/** Keys, strings, numbers and literals, tuned for the dark code background. */
+private fun jsonColors(): JsonColors =
+    JsonColors(DebugKitColors.Accent, DebugKitColors.Good, DebugKitColors.Info, DebugKitColors.Warning, DebugKitColors.Text)
 
 private class FormattedBody(val lines: List<String>, val isJson: Boolean)
 

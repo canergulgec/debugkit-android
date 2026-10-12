@@ -12,14 +12,30 @@ import dev.debugkit.network.internal.MockDrafts
 import dev.debugkit.network.internal.MockRule
 import dev.debugkit.network.internal.MockRuleStore
 import dev.debugkit.plugin.DebugPlugin
+import dev.debugkit.plugin.DebugSection
+import dev.debugkit.plugin.DebugTile
+import dev.debugkit.ui.DebugTone
 
 /** The Mock Responses screen: every rule with an on/off switch, and the rule editor. */
 internal object MockRulesPlugin : DebugPlugin {
 
     override val id: String = "debugkit.mocks"
-    override val title: String = "Mock Responses"
+    override val title: String = "Mocks"
     override val summary: String = "Replace responses, simulate errors and slow calls"
     override val order: Int = 11
+    override val section: DebugSection = DebugSection.Network
+
+    @Composable
+    override fun tile(): DebugTile {
+        val rules by MockRuleStore.rules.collectAsStateWithLifecycle(initialValue = emptyList())
+        val active = rules.count { it.enabled }
+        return DebugTile(
+            label = "Mocks",
+            value = active.toString(),
+            note = if (active == 0) "none active" else "active now",
+            tone = if (active == 0) DebugTone.Neutral else DebugTone.Warning,
+        )
+    }
 
     @Composable
     override fun Content() {
