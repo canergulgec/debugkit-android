@@ -204,12 +204,18 @@ private fun QuickActions(onAll: () -> Unit) {
     DebugKitCard {
         shown.forEachIndexed { index, action ->
             if (index > 0) HorizontalDivider(color = DebugKitColors.Border)
+            // Summary under the title, as in the App tab: beside it, a long one squeezed the title onto two lines.
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button) { action.onClick() }.padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button) { action.onClick() }.padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(action.title, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp), modifier = Modifier.weight(1f))
-                action.summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary, maxLines = 1) }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(action.title, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp))
+                    action.summary?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                Icon(painterResource(R.drawable.debugkit_ic_chevron_right), contentDescription = null, tint = DebugKitColors.TextSecondary, modifier = Modifier.size(18.dp))
             }
         }
     }
