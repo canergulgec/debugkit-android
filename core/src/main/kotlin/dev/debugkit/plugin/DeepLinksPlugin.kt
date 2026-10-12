@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LifecycleResumeEffect
-import dev.debugkit.internal.deeplinks.AppLinksStatus
 import dev.debugkit.internal.deeplinks.DeepLinkOpener
 import dev.debugkit.internal.deeplinks.DeepLinkStore
 import dev.debugkit.internal.deeplinks.DomainState
@@ -173,7 +172,9 @@ internal object DeepLinksPlugin : DebugPlugin {
             Hint("App Links verification status needs Android 12 or newer.", Modifier.padding(horizontal = 20.dp))
             return
         }
-        var status by remember { mutableStateOf<AppLinksStatus?>(null) }
+        // Read right away, not only on resume: this row is recreated whenever it scrolls back into
+        // view, and starting from null would flash "Could not read" each time.
+        var status by remember { mutableStateOf(appLinksStatus(context)) }
         // Re-read when returning from the system settings, where the user may change it.
         LifecycleResumeEffect(Unit) {
             status = appLinksStatus(context)

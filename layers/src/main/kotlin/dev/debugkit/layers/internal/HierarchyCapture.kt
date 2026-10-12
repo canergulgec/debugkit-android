@@ -216,10 +216,7 @@ internal class HierarchyCapture private constructor(private val activity: Activi
 
     private fun dp(px: Int): String = dp(px.toFloat())
 
-    private fun dp(px: Float): String {
-        val value = px / density
-        return if (value % 1f == 0f) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
-    }
+    private fun dp(px: Float): String = DpFormat.format(px, density)
 
     companion object {
         private const val LABEL_LENGTH = 40

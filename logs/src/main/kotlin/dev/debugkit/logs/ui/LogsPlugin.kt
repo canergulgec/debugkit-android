@@ -1,13 +1,14 @@
 package dev.debugkit.logs.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import dev.debugkit.logs.internal.LogStore
 import dev.debugkit.plugin.DebugPlugin
 import dev.debugkit.plugin.DebugSection
 import dev.debugkit.plugin.DebugTile
 import dev.debugkit.ui.DebugTone
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 /** The Logs screen: recent Timber logs with level, tag and text filters. */
@@ -21,12 +22,19 @@ internal object LogsPlugin : DebugPlugin {
 
     @Composable
     override fun tile(): DebugTile {
-        // Subscribes to log changes; the counts themselves are kept by the store, so this is cheap.
-        val version by LogStore.version.collectAsState()
-        val errors = version.let { LogStore.errorCount }
+        // A tile's state is read by the whole Home screen, and apps can log thousands of lines a
+        // second, so the counts refresh at most every REFRESH_INTERVAL_MS, not on every line.
+        // Counts only: an unchanged pair does not recompose Home at all.
+        val counts by produceState(LogStore.size to LogStore.errorCount) {
+            LogStore.version.collect {
+                value = LogStore.size to LogStore.errorCount
+                delay(REFRESH_INTERVAL_MS)
+            }
+        }
+        val (size, errors) = counts
         return DebugTile(
             label = "Logs",
-            value = compact(LogStore.size),
+            value = compact(size),
             note = when (errors) {
                 0 -> "no errors"
                 1 -> "1 error"

@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.debugkit.layers.internal.Bounds
+import dev.debugkit.layers.internal.DpFormat
 import dev.debugkit.layers.internal.LayerKind
 import dev.debugkit.layers.internal.LayerNode
 import dev.debugkit.layers.internal.LayerSnapshot
@@ -429,9 +430,5 @@ private fun drawCrosshair(canvas: NativeCanvas, x: Float, y: Float, radius: Floa
     canvas.drawLine(x, y + radius * 0.4f, x, y + radius * 1.6f, paints.crosshairOuter)
 }
 
-/** Pixels as dp, without a decimal when it is a whole number: "16 dp", "12.5 dp". */
-internal fun formatDp(px: Int, density: Float): String {
-    val dp = px / density
-    val rounded = Math.round(dp * 10) / 10f
-    return if (rounded % 1f == 0f) "${rounded.toInt()} dp" else "$rounded dp"
-}
+/** Pixels as dp with the unit, e.g. "16 dp"; see [DpFormat]. */
+internal fun formatDp(px: Int, density: Float): String = "${DpFormat.format(px.toFloat(), density)} dp"

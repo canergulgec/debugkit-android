@@ -52,7 +52,7 @@ import dev.debugkit.ui.shareText
 import kotlinx.coroutines.delay
 
 /** Refresh at most this often while logs pour in, so the list stays readable and cheap. */
-private const val REFRESH_INTERVAL_MS = 300L
+internal const val REFRESH_INTERVAL_MS = 300L
 
 /** Share intents fail above roughly 1 MB, so sharing is capped to the newest entries. */
 private const val MAX_SHARED_ENTRIES = 1_000

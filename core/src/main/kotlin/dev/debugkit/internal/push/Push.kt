@@ -12,7 +12,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -56,6 +59,36 @@ internal class PushSetup(
     val handler: ((Map<String, String>) -> Unit)?,
     val templates: List<PushTemplate>,
 )
+
+internal sealed interface TokenState {
+    data object Loading : TokenState
+    data class Loaded(val token: String?) : TokenState
+    data class Failed(val message: String) : TokenState
+}
+
+/**
+ * The push token, kept for the process once loaded: asking Firebase again each time the Push
+ * page or its token row is shown would flash "Loading…" for nothing. Refresh loads it anew.
+ */
+internal object PushToken {
+
+    /** Null until first requested. */
+    var state by mutableStateOf<TokenState?>(null)
+        private set
+
+    /** Loads unless a token is already here; also retries a load cut short by leaving the page. */
+    suspend fun loadIfNeeded(provider: suspend () -> String?) {
+        if (state !is TokenState.Loaded) load(provider)
+    }
+
+    suspend fun load(provider: suspend () -> String?) {
+        state = TokenState.Loading
+        state = runCatching { provider() }.fold(
+            onSuccess = { TokenState.Loaded(it?.takeIf(String::isNotEmpty)) },
+            onFailure = { TokenState.Failed(it.message ?: it.toString()) },
+        )
+    }
+}
 
 /** `key=value` per line, the form QA types data in. Blank lines and lines without `=` are skipped. */
 internal object PushData {

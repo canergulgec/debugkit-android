@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,8 +45,10 @@ import dev.debugkit.internal.push.PushData
 import dev.debugkit.internal.push.PushDelivery
 import dev.debugkit.internal.push.PushStore
 import dev.debugkit.internal.push.PushTemplate
+import dev.debugkit.internal.push.PushToken
 import dev.debugkit.internal.push.ReceivedPush
 import dev.debugkit.internal.push.TestPushSender
+import dev.debugkit.internal.push.TokenState
 import dev.debugkit.ui.DebugKitBanner
 import dev.debugkit.ui.DebugKitButton
 import dev.debugkit.ui.DebugKitCard
@@ -102,6 +103,8 @@ internal object PushPlugin : DebugPlugin {
 
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
+        // Here rather than in the token's row: the list disposes rows scrolled out of view.
+        setup.token?.let { provider -> LaunchedEffect(provider) { PushToken.loadIfNeeded(provider) } }
         // Items before the form's header: permission, token header, token, received header, rows.
         val sendHeaderIndex = 4 + PushStore.received.size.coerceAtLeast(1)
 
@@ -109,7 +112,13 @@ internal object PushPlugin : DebugPlugin {
             item { NotificationPermission() }
 
             item { SectionHeader("Push token") }
-            item { Token(setup.token) }
+            item {
+                Token(
+                    configured = setup.token != null,
+                    state = PushToken.state,
+                    onRefresh = { setup.token?.let { scope.launch { PushToken.load(it) } } },
+                )
+            }
 
             // Right under the token: what QA checks most, so it must not hide below the form.
             item {
@@ -253,9 +262,9 @@ internal object PushPlugin : DebugPlugin {
     }
 
     @Composable
-    private fun Token(provider: (suspend () -> String?)?) {
+    private fun Token(configured: Boolean, state: TokenState?, onRefresh: () -> Unit) {
         val context = LocalContext.current
-        if (provider == null) {
+        if (!configured) {
             Text(
                 "Add token { … } to push { } in DebugKit.install to show it here.",
                 style = MaterialTheme.typography.bodySmall,
@@ -264,32 +273,22 @@ internal object PushPlugin : DebugPlugin {
             )
             return
         }
-        var reload by remember { mutableIntStateOf(0) }
-        var token by remember { mutableStateOf<String?>(null) }
-        var failure by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(reload) {
-            token = null
-            failure = null
-            runCatching { provider() }
-                .onSuccess { token = it ?: "" }
-                .onFailure { failure = it.message ?: it.toString() }
-        }
+        val token = (state as? TokenState.Loaded)?.token
         DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val current = token
                 when {
-                    failure != null -> Text("Could not get the token: $failure", color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall)
-                    current == null -> Text("Loading…", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
-                    current.isEmpty() -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
-                    else -> Text(current, style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    state is TokenState.Failed -> Text("Could not get the token: ${state.message}", color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall)
+                    state !is TokenState.Loaded -> Text("Loading…", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
+                    token == null -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
+                    else -> Text(token, style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono), maxLines = 3, overflow = TextOverflow.Ellipsis)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DebugKitButton(
                         "Copy",
-                        onClick = { token?.takeIf { it.isNotEmpty() }?.let { copyToClipboard(context, "Push token", it) } },
-                        enabled = !token.isNullOrEmpty(),
+                        onClick = { token?.let { copyToClipboard(context, "Push token", it) } },
+                        enabled = token != null,
                     )
-                    DebugKitButton("Refresh", onClick = { reload++ })
+                    DebugKitButton("Refresh", onClick = onRefresh, enabled = state !is TokenState.Loading)
                 }
             }
         }
