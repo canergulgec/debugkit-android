@@ -12,8 +12,9 @@ import androidx.core.content.pm.PackageInfoCompat
 import dev.debugkit.internal.isDebuggable
 import dev.debugkit.internal.packageInfo
 import dev.debugkit.ui.copyToClipboard
-import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 /** Built-in plugin: app, device and display details. Tapping a row copies its value. */
 internal class AppInfoPlugin : DebugPlugin {
@@ -44,7 +45,8 @@ internal class AppInfoPlugin : DebugPlugin {
         val appInfo = context.applicationInfo
         val metrics = context.resources.displayMetrics
         val configuration = context.resources.configuration
-        val dateFormat = DateFormat.getDateTimeInstance()
+        // Fixed, not the device's format: DebugKit reads in English whatever the phone's language.
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
         return listOf(
             "Application" to listOf(

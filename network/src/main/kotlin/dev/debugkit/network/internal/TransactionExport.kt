@@ -77,10 +77,10 @@ internal object TransactionExport {
         else -> String.format(Locale.US, "%.1f MB", bytes / 1_000_000.0)
     }
 
-    fun formatTime(millis: Long): String = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(millis))
+    fun formatTime(millis: Long): String = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(millis))
 
     private fun formatDateTime(millis: Long): String =
-        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault()).format(Date(millis))
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date(millis))
 
     private fun bodyText(body: CapturedBody?): String = when {
         body == null -> "(no body)"

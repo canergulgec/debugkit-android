@@ -1,6 +1,5 @@
 package dev.debugkit.ui
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +43,7 @@ import dev.debugkit.internal.ActionItem
 import dev.debugkit.internal.AppRestarter
 import dev.debugkit.internal.DebugSettings
 import dev.debugkit.internal.EnvironmentResolver
+import dev.debugkit.internal.RelativeTime
 import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.internal.isDebuggable
 import dev.debugkit.internal.packageInfo
@@ -163,7 +163,7 @@ private fun LastCrash(onView: () -> Unit) {
     if (!CrashReporter.isInstalled) return
     val version = CrashReporter.version.intValue
     val crash = remember(version) { CrashReporter.store.list().firstOrNull() } ?: return
-    val ago = DateUtils.getRelativeTimeSpanString(crash.timestamp, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
+    val ago = RelativeTime.format(crash.timestamp, now = System.currentTimeMillis())
     Surface(
         onClick = onView,
         shape = RoundedCornerShape(16.dp),
