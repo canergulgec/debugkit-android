@@ -13,7 +13,10 @@ internal data class LogEntry(
     val tag: String?,
     val message: String,
     val thread: String,
-)
+) {
+    /** Errors and asserts: what the Logs tile counts and the list shows in red. */
+    val isError: Boolean get() = priority >= Log.ERROR
+}
 
 internal object LogFormat {
 

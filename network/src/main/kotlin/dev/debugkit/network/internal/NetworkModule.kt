@@ -17,19 +17,9 @@ internal object NetworkModule {
     /** Background work that outlives any screen: database writes and keeping caches in sync. */
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    private var initialized = false
-
     private const val MAX_ATTACHED_CALLS = 100
 
-    /** e.g. `14:32:08 500 POST https://api.example.com/cart (231 ms) [mock: Cart fails]` */
-    fun callLine(tx: TransactionSummary): String = buildString {
-        append(TransactionExport.formatTime(tx.requestedAt)).append(' ')
-        append(tx.statusLabel)
-        append(' ').append(tx.method).append(' ').append(tx.url)
-        tx.durationMs?.let { append(" (").append(it).append(" ms)") }
-        tx.error?.let { append(" error: ").append(it) }
-        tx.mockRuleName?.let { append(" [mock: ").append(it).append(']') }
-    }
+    private var initialized = false
 
     @Synchronized
     fun init(context: Context) {
@@ -44,7 +34,7 @@ internal object NetworkModule {
         DebugKit.registerPlugin(MockRulesPlugin)
         DebugKit.addCrashAttachment("network.txt") {
             // Oldest first, so it reads in the order the calls happened.
-            TransactionStore.latest.take(MAX_ATTACHED_CALLS).asReversed().joinToString("\n", transform = ::callLine)
+            TransactionStore.latest.take(MAX_ATTACHED_CALLS).asReversed().joinToString("\n", transform = TransactionExport::callLine)
         }
         DebugKit.addCrashAttachment("mocks.txt") {
             MockRuleStore.enabledRules.joinToString("\n") { rule ->

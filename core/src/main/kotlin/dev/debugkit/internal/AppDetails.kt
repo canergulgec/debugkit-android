@@ -19,12 +19,17 @@ internal fun Context.packageInfo(): PackageInfo =
         packageManager.getPackageInfo(packageName, 0)
     }
 
+internal val Context.isDebuggable: Boolean
+    get() = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+/** `1.4.0 (140)`: version name and code. */
+internal val PackageInfo.versionLabel: String
+    get() = "$versionName (${PackageInfoCompat.getLongVersionCode(this)})"
+
 /** The facts every crash and report starts with: which build, on which device, against which backend. */
-internal fun appSummary(context: Context): List<Pair<String, String>> {
-    val info = context.packageInfo()
-    val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-    return buildList {
-        add("App" to "${context.packageName} ${info.versionName} (${PackageInfoCompat.getLongVersionCode(info)})${if (debuggable) " debuggable" else ""}")
+internal fun appSummary(context: Context): List<Pair<String, String>> =
+    buildList {
+        add("App" to "${context.packageName} ${context.packageInfo().versionLabel}${if (context.isDebuggable) " debuggable" else ""}")
         add("Device" to "${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
         add("Locale" to context.resources.configuration.locales[0].toLanguageTag())
         DebugSettings.selectedEnvironment?.let { add("Environment" to it) }
@@ -33,7 +38,6 @@ internal fun appSummary(context: Context): List<Pair<String, String>> {
         }
         ScreenTracker.current?.let { add("Screen" to it) }
     }
-}
 
 /** Remembers the app screen in front, for crash reports. DebugKit's own screen is ignored. */
 internal object ScreenTracker : ActivityCallbacks() {

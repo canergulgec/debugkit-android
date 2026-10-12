@@ -26,13 +26,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.debugkit.layers.internal.LayerNode
 import dev.debugkit.layers.internal.Measurement
 import dev.debugkit.layers.internal.Side
 import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitEmpty
 import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.copyToClipboard
 import java.util.Locale
 
 /** A color read from the screenshot, and the element it belongs to. */
@@ -61,7 +62,7 @@ internal fun MeasurePanel(
     onClear: () -> Unit,
 ) {
     if (a == null) {
-        Hint("Tap two elements on the screen above to measure the distance between them. Pinch to zoom in on small ones.")
+        DebugKitEmpty("Tap two elements on the screen above to measure the distance between them. Pinch to zoom in on small ones.")
         return
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -134,14 +135,14 @@ private fun Result(label: String, value: String) {
 internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
     val context = LocalContext.current
     if (current == null && history.isEmpty()) {
-        Hint("Touch the screen above and move your finger to the exact spot; the color under it is shown here. Use two fingers to zoom in.")
+        DebugKitEmpty("Touch the screen above and move your finger to the exact spot; the color under it is shown here. Use two fingers to zoom in.")
         return
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
         (current ?: history.first()).let { pick ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().clickable { copy(context, "Color", pick.hex) },
+                modifier = Modifier.fillMaxWidth().clickable { copyToClipboard(context, "Color", pick.hex) },
             ) {
                 Swatch(pick.color, 56)
                 Spacer(Modifier.width(16.dp))
@@ -152,7 +153,7 @@ internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
                         Text("on $it", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary, maxLines = 1)
                     }
                 }
-                TextButton(onClick = { copy(context, "Color", pick.hex) }) { Text("Copy") }
+                TextButton(onClick = { copyToClipboard(context, "Color", pick.hex) }) { Text("Copy") }
             }
         }
         if (history.isNotEmpty()) {
@@ -166,7 +167,7 @@ internal fun ColorPanel(current: ColorPick?, history: List<ColorPick>) {
                 history.forEach { pick ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { copy(context, "Color", pick.hex) },
+                        modifier = Modifier.clickable { copyToClipboard(context, "Color", pick.hex) },
                     ) {
                         Swatch(pick.color, 36)
                         Text(pick.hex, style = MaterialTheme.typography.labelSmall.copy(fontFamily = DebugKitFonts.Mono))
@@ -186,11 +187,4 @@ private fun Swatch(color: Int, sizeDp: Int) {
             .background(Color(color), RoundedCornerShape(8.dp))
             .border(1.dp, DebugKitColors.Border, RoundedCornerShape(8.dp)),
     )
-}
-
-@Composable
-private fun Hint(text: String) {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(text, textAlign = TextAlign.Center, color = DebugKitColors.TextSecondary)
-    }
 }

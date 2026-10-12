@@ -1,5 +1,9 @@
 package dev.debugkit.internal.analytics
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 /** One event the app sent to an analytics tool, as recorded for QA. */
 internal data class AnalyticsEvent(
     val id: Long,
@@ -12,7 +16,10 @@ internal data class AnalyticsEvent(
     val issues: List<String>,
     /** Same name and params as an event shortly before: usually a double-fired call. */
     val duplicate: Boolean,
-)
+) {
+    /** Worth QA's attention: Firebase would drop or cut it, or it was sent twice. */
+    val hasProblem: Boolean get() = issues.isNotEmpty() || duplicate
+}
 
 internal data class UserProperty(
     val provider: String,
@@ -35,6 +42,9 @@ internal object DuplicateCheck {
 }
 
 internal object AnalyticsFormat {
+
+    /** `14:32:08.120`. A new formatter per call: SimpleDateFormat is not thread-safe. */
+    fun time(millis: Long): String = SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(Date(millis))
 
     /** `item_id=SKU-1, price=9.99`, for list rows. */
     fun preview(params: Map<String, Any?>): String =

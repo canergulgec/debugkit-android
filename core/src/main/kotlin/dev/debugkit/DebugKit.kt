@@ -13,11 +13,11 @@ import dev.debugkit.internal.PluginRegistry
 import dev.debugkit.internal.ScreenTracker
 import dev.debugkit.internal.ShakeToOpen
 import dev.debugkit.internal.analytics.AnalyticsStore
+import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.internal.deeplinks.DeepLinkStore
 import dev.debugkit.internal.push.PushSetup
 import dev.debugkit.internal.push.PushStore
 import dev.debugkit.internal.push.ReceivedPush
-import dev.debugkit.internal.crash.CrashReporter
 import dev.debugkit.plugin.AppInfoPlugin
 import dev.debugkit.plugin.CrashesPlugin
 import dev.debugkit.plugin.DebugPlugin

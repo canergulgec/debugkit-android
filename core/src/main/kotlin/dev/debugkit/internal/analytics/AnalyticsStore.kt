@@ -8,9 +8,6 @@ import androidx.compose.runtime.mutableStateMapOf
 import dev.debugkit.internal.CrashAttachments
 import dev.debugkit.internal.PluginRegistry
 import dev.debugkit.plugin.AnalyticsPlugin
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -95,10 +92,8 @@ internal object AnalyticsStore {
         CrashAttachments.add("analytics.txt") {
             // Oldest first, so it reads in the order the events happened.
             events.toList().take(MAX_ATTACHED_EVENTS).asReversed().joinToString("\n") { event ->
-                "${TIME.format(Date(event.timestamp))} ${event.provider} ${event.name} ${AnalyticsFormat.preview(event.params)}"
+                "${AnalyticsFormat.time(event.timestamp)} ${event.provider} ${event.name} ${AnalyticsFormat.preview(event.params)}"
             }
         }
     }
-
-    private val TIME = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 }

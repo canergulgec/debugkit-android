@@ -54,7 +54,7 @@ internal object EnvironmentPlugin : DebugPlugin {
 
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
             if (DebugSettings.needsRestart) {
-                item { RestartBanner("Restart the app to switch environments.") }
+                item { RestartBanner("Restart the app to switch environments.", Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
             }
             item {
                 Box(Modifier.padding(top = 8.dp)) {

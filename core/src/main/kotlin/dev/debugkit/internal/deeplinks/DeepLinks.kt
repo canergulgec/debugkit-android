@@ -13,6 +13,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.edit
+import dev.debugkit.internal.DebugSettings
 
 internal data class DeepLink(val title: String, val uri: String)
 
@@ -50,7 +51,6 @@ internal object LinkParts {
 
 internal object DeepLinkStore {
 
-    private const val PREFS_NAME = "debugkit_settings"
     private const val KEY_RECENT = "deeplinks.recent"
     private const val MAX_RECENT = 10
 
@@ -63,7 +63,7 @@ internal object DeepLinkStore {
     val recent = mutableStateListOf<String>()
 
     fun init(context: Context, links: List<DeepLink>) {
-        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs = context.getSharedPreferences(DebugSettings.PREFS_NAME, Context.MODE_PRIVATE)
         saved = links
         recent.clear()
         recent.addAll(prefs.getString(KEY_RECENT, null)?.split('\n')?.filter { it.isNotBlank() }.orEmpty())

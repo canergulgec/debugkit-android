@@ -35,7 +35,6 @@ import dev.debugkit.ui.DebugKitFonts
 import dev.debugkit.ui.DebugKitSearchField
 import dev.debugkit.ui.DebugKitTitleButton
 
-
 @Composable
 internal fun TransactionListScreen(
     transactions: List<TransactionSummary>,

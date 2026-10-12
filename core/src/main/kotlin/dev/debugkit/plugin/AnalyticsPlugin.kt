@@ -45,9 +45,7 @@ import dev.debugkit.ui.DebugKitSearchField
 import dev.debugkit.ui.DebugKitSubpage
 import dev.debugkit.ui.DebugKitTitleButton
 import dev.debugkit.ui.DebugTone
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import dev.debugkit.ui.copyToClipboard
 
 /**
  * Events and user properties the app reported with DebugKit.recordAnalyticsEvent / recordUserProperty,
@@ -63,7 +61,7 @@ internal object AnalyticsPlugin : DebugPlugin {
     override val summary: String
         get() {
             val events = AnalyticsStore.events
-            val problems = events.count { it.issues.isNotEmpty() || it.duplicate }
+            val problems = events.count { it.hasProblem }
             return when {
                 events.isEmpty() -> "Events and user properties sent by the app"
                 problems > 0 -> "${events.size} events · $problems with problems"
@@ -75,7 +73,7 @@ internal object AnalyticsPlugin : DebugPlugin {
     override fun tile(): DebugTile? {
         val events = AnalyticsStore.events
         if (events.isEmpty()) return null
-        val problems = events.count { it.issues.isNotEmpty() || it.duplicate }
+        val problems = events.count { it.hasProblem }
         return DebugTile(
             label = "Analytics",
             value = events.size.toString(),
@@ -111,7 +109,7 @@ internal object AnalyticsPlugin : DebugPlugin {
         var problemsOnly by rememberSaveable { mutableStateOf(false) }
         val events = AnalyticsStore.events
         val visible = events.filter { event ->
-            (!problemsOnly || event.issues.isNotEmpty() || event.duplicate) &&
+            (!problemsOnly || event.hasProblem) &&
                 (query.isBlank() || event.name.contains(query.trim(), ignoreCase = true))
         }
         // Several tools at once (Firebase + Adjust, …) show which one each event went to.
@@ -134,7 +132,7 @@ internal object AnalyticsPlugin : DebugPlugin {
                 modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 10.dp),
             )
             if (visible.isEmpty()) {
-                Placeholder(
+                DebugKitEmpty(
                     when {
                         events.isEmpty() -> "No events yet. They appear here as the app sends them."
                         problemsOnly -> "No problems found in the recorded events."
@@ -176,7 +174,7 @@ internal object AnalyticsPlugin : DebugPlugin {
                                 )
                             }
                             Text(
-                                text = TIME.format(Date(event.timestamp)) + if (showProvider) "  ·  ${event.provider}" else "",
+                                text = AnalyticsFormat.time(event.timestamp) + if (showProvider) "  ·  ${event.provider}" else "",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = DebugKitColors.TextFaint,
                             )
@@ -196,7 +194,7 @@ internal object AnalyticsPlugin : DebugPlugin {
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(event.name, style = MaterialTheme.typography.titleMedium.copy(fontFamily = DebugKitFonts.Mono))
                     Text(
-                        "${event.provider} · ${TIME.format(Date(event.timestamp))} · ${event.params.size} parameter${if (event.params.size == 1) "" else "s"}",
+                        "${event.provider} · ${AnalyticsFormat.time(event.timestamp)} · ${event.params.size} parameter${if (event.params.size == 1) "" else "s"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = DebugKitColors.TextSecondary,
                     )
@@ -207,9 +205,9 @@ internal object AnalyticsPlugin : DebugPlugin {
                 }
             }
             if (event.duplicate) {
-                item { Warning("Sent twice: an event with the same name and parameters was recorded less than a second before. Usually the call fires twice.", WARNING) }
+                item { Warning("Sent twice: an event with the same name and parameters was recorded less than a second before. Usually the call fires twice.", DebugKitColors.Warning) }
             }
-            items(event.issues) { Warning(it, ERROR) }
+            items(event.issues) { Warning(it, DebugKitColors.Error) }
             if (event.issues.isNotEmpty()) {
                 item {
                     Text(
@@ -221,7 +219,7 @@ internal object AnalyticsPlugin : DebugPlugin {
                 }
             }
             item { SectionHeader("Parameters") }
-            if (event.params.isEmpty()) item { Placeholder("No parameters.") }
+            if (event.params.isEmpty()) item { DebugKitEmpty("No parameters.") }
             if (event.params.isNotEmpty()) {
                 item {
                     CardGroup(event.params.entries.toList()) { (key, value) ->
@@ -237,7 +235,7 @@ internal object AnalyticsPlugin : DebugPlugin {
         val context = LocalContext.current
         val properties = AnalyticsStore.userProperties.values.sortedBy { it.name }
         if (properties.isEmpty()) {
-            Placeholder("No user properties yet. They appear here when the app records them with DebugKit.recordUserProperty.")
+            DebugKitEmpty("No user properties yet. They appear here when the app records them with DebugKit.recordUserProperty.")
             return
         }
         val showProvider = properties.map { it.provider }.distinct().size > 1
@@ -249,12 +247,12 @@ internal object AnalyticsPlugin : DebugPlugin {
             items(properties, key = { "${it.provider}/${it.name}" }) { property: UserProperty ->
                 DebugKitCard(Modifier.fillMaxWidth()) {
                     ValueRow(
-                        label = property.name + (if (showProvider) " · ${property.provider}" else "") + " · set ${TIME.format(Date(property.timestamp))}",
+                        label = property.name + (if (showProvider) " · ${property.provider}" else "") + " · set ${AnalyticsFormat.time(property.timestamp)}",
                         value = property.value ?: "(cleared)",
                         onClick = { copyToClipboard(context, property.name, property.value.orEmpty()) },
                     )
                     if (property.issues.isNotEmpty()) {
-                        Column(Modifier.padding(start = 0.dp, bottom = 8.dp)) { property.issues.forEach { Warning(it, ERROR) } }
+                        Column(Modifier.padding(bottom = 8.dp)) { property.issues.forEach { Warning(it, DebugKitColors.Error) } }
                     }
                 }
             }
@@ -269,12 +267,4 @@ internal object AnalyticsPlugin : DebugPlugin {
         }
     }
 
-    @Composable
-    private fun Placeholder(text: String) {
-        DebugKitEmpty(text)
-    }
-
-    private val ERROR = DebugKitColors.Error
-    private val WARNING = DebugKitColors.Warning
-    private val TIME = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 }

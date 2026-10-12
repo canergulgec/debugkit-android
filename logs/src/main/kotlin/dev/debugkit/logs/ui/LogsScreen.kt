@@ -1,12 +1,7 @@
 package dev.debugkit.logs.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import android.os.Build
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -52,6 +47,8 @@ import dev.debugkit.ui.DebugKitPill
 import dev.debugkit.ui.DebugKitSearchField
 import dev.debugkit.ui.DebugKitTitleButton
 import dev.debugkit.ui.DebugTone
+import dev.debugkit.ui.copyToClipboard
+import dev.debugkit.ui.shareText
 import kotlinx.coroutines.delay
 
 /** Refresh at most this often while logs pour in, so the list stays readable and cheap. */
@@ -124,7 +121,7 @@ internal fun LogsScreen() {
                     expanded = expanded[entry.id] == true,
                     onToggle = { expanded[entry.id] = expanded[entry.id] != true },
                     onTagClick = { tag = entry.tag },
-                    onCopy = { copy(context, LogFormat.line(entry)) },
+                    onCopy = { copyToClipboard(context, "Log", LogFormat.line(entry)) },
                 )
                 HorizontalDivider(color = DebugKitColors.Divider, modifier = Modifier.padding(horizontal = 16.dp))
             }
@@ -171,7 +168,7 @@ private fun LogRow(
             Text(
                 text = entry.message,
                 style = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp, lineHeight = 17.sp),
-                color = if (entry.priority >= Log.ERROR) DebugKitColors.Error else DebugKitColors.Text,
+                color = if (entry.isError) DebugKitColors.Error else DebugKitColors.Text,
                 maxLines = if (expanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -190,17 +187,8 @@ private fun levelTone(priority: Int): DebugTone = when (priority) {
 
 private val LEVELS = listOf(Log.VERBOSE, Log.DEBUG, Log.INFO, Log.WARN, Log.ERROR)
 
-private fun copy(context: Context, text: String) {
-    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Log", text))
-    // Android 13+ shows its own clipboard confirmation.
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        Toast.makeText(context, "Log copied", Toast.LENGTH_SHORT).show()
-    }
-}
-
 /** Shares the filtered logs oldest first, so they read top to bottom like logcat. */
 private fun share(context: Context, newestFirst: List<LogEntry>) {
     val text = newestFirst.take(MAX_SHARED_ENTRIES).asReversed().joinToString("\n", transform = LogFormat::line)
-    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-    context.startActivity(Intent.createChooser(send, "Share logs"))
+    shareText(context, text, chooserTitle = "Share logs")
 }

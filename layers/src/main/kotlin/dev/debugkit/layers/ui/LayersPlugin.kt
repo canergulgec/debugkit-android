@@ -1,10 +1,5 @@
 package dev.debugkit.layers.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.os.Build
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -45,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.debugkit.layers.internal.LayerGeometry
@@ -58,7 +52,9 @@ import dev.debugkit.plugin.DebugPlugin
 import dev.debugkit.plugin.DebugSection
 import dev.debugkit.ui.DebugKitChip
 import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.DebugKitEmpty
 import dev.debugkit.ui.DebugKitSegments
+import dev.debugkit.ui.copyToClipboard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -77,14 +73,10 @@ internal object LayersPlugin : DebugPlugin {
     override fun Content() {
         val snapshot = SnapshotStore.latest
         if (snapshot == null) {
-            Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "No screen captured yet.\nOpen DebugKit from the screen you want to inspect, by shaking " +
-                        "the device or with your app's DebugKit button. That screen is captured at that moment.",
-                    textAlign = TextAlign.Center,
-                    color = DebugKitColors.TextSecondary,
-                )
-            }
+            DebugKitEmpty(
+                "No screen captured yet.\nOpen DebugKit from the screen you want to inspect, by shaking " +
+                    "the device or with your app's DebugKit button. That screen is captured at that moment.",
+            )
             return
         }
         // A new capture starts with a fresh selection and view.
@@ -245,8 +237,11 @@ private fun LayersScreen(snapshot: LayerSnapshot) {
             }
             LayersMode.Color -> Box(Modifier.fillMaxWidth().weight(0.45f)) {
                 val bitmap = snapshot.bitmap
-                val live = colorPoint?.takeIf { bitmap != null }?.let { point ->
-                    ColorPick(bitmap!!.getPixel(point.x, point.y), elementAt(point)?.displayName())
+                val point = colorPoint
+                val live = if (bitmap != null && point != null) {
+                    ColorPick(bitmap.getPixel(point.x, point.y), elementAt(point)?.displayName())
+                } else {
+                    null
                 }
                 ColorPanel(current = live, history = colorHistory)
             }
@@ -284,13 +279,7 @@ private fun ModeChip(
 private fun Properties(snapshot: LayerSnapshot, node: LayerNode?, onSelect: (LayerNode) -> Unit) {
     val context = LocalContext.current
     if (node == null) {
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(
-                "Tap an element on the screen above, or pick one under Tree.",
-                textAlign = TextAlign.Center,
-                color = DebugKitColors.TextSecondary,
-            )
-        }
+        DebugKitEmpty("Tap an element on the screen above, or pick one under Tree.")
         return
     }
     LazyColumn(Modifier.fillMaxSize()) {
@@ -308,7 +297,7 @@ private fun Properties(snapshot: LayerSnapshot, node: LayerNode?, onSelect: (Lay
             ListItem(
                 overlineContent = { Text(label) },
                 headlineContent = { Text(value) },
-                modifier = Modifier.clickable { copy(context, label, value) },
+                modifier = Modifier.clickable { copyToClipboard(context, label, value) },
             )
         }
     }
@@ -364,14 +353,6 @@ private fun LabeledRow(label: String, content: @Composable () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(96.dp))
         Box(Modifier.weight(1f)) { content() }
-    }
-}
-
-internal fun copy(context: Context, label: String, value: String) {
-    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, value))
-    // Android 13+ shows its own clipboard confirmation.
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
     }
 }
 

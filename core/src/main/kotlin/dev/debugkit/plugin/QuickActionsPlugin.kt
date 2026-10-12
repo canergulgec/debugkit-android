@@ -29,6 +29,7 @@ import dev.debugkit.internal.ActionItem
 import dev.debugkit.internal.DebugSettings
 import dev.debugkit.ui.DebugKitCard
 import dev.debugkit.ui.DebugKitColors
+import dev.debugkit.ui.copyToClipboard
 
 /** The app's own debug menu items, declared in `DebugKit.install { actions { … } }`. */
 internal object QuickActionsPlugin : DebugPlugin {

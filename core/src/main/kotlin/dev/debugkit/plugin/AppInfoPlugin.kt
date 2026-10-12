@@ -1,7 +1,6 @@
 package dev.debugkit.plugin
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.os.Build
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,7 +9,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
+import dev.debugkit.internal.isDebuggable
 import dev.debugkit.internal.packageInfo
+import dev.debugkit.ui.copyToClipboard
 import java.text.DateFormat
 import java.util.Date
 
@@ -50,7 +51,7 @@ internal class AppInfoPlugin : DebugPlugin {
                 "Package" to context.packageName,
                 "Version name" to (packageInfo.versionName ?: "-"),
                 "Version code" to PackageInfoCompat.getLongVersionCode(packageInfo).toString(),
-                "Debuggable" to (appInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0).toString(),
+                "Debuggable" to context.isDebuggable.toString(),
                 "Target SDK" to appInfo.targetSdkVersion.toString(),
                 "Min SDK" to appInfo.minSdkVersion.toString(),
                 "First installed" to dateFormat.format(Date(packageInfo.firstInstallTime)),

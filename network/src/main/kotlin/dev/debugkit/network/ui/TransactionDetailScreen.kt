@@ -1,11 +1,5 @@
 package dev.debugkit.network.ui
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -49,7 +43,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,9 +65,12 @@ import dev.debugkit.ui.DebugKitColors
 import dev.debugkit.ui.DebugKitFonts
 import dev.debugkit.ui.DebugKitPill
 import dev.debugkit.ui.DebugKitSearchField
+import dev.debugkit.ui.DebugKitSectionLabel
 import dev.debugkit.ui.DebugKitSegments
 import dev.debugkit.ui.DebugKitSubpage
 import dev.debugkit.ui.DebugTone
+import dev.debugkit.ui.copyToClipboard
+import dev.debugkit.ui.shareText
 import kotlinx.coroutines.launch
 
 @Composable
@@ -110,9 +106,12 @@ internal fun TransactionDetailScreen(tx: HttpTransaction, onCreateMock: () -> Un
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             DebugKitButton("Mock", onClick = onCreateMock, primary = true)
-            DebugKitButton("Copy cURL", onClick = { copy(context, "cURL", TransactionExport.toCurl(tx)) })
-            DebugKitButton("Copy URL", onClick = { copy(context, "URL", tx.url) })
-            DebugKitButton("Share", onClick = { share(context, tx) })
+            DebugKitButton("Copy cURL", onClick = { copyToClipboard(context, "cURL", TransactionExport.toCurl(tx)) })
+            DebugKitButton("Copy URL", onClick = { copyToClipboard(context, "URL", tx.url) })
+            DebugKitButton(
+                "Share",
+                onClick = { shareText(context, TransactionExport.toShareText(tx), chooserTitle = "Share request", subject = "${tx.method} ${tx.url}") },
+            )
         }
         DebugKitSegments(
             options = TABS,
@@ -165,11 +164,15 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
     // Wide enough for the largest line number.
     val gutter = (formatted?.lines?.size?.toString()?.length ?: 1).let { (it * 8 + 14).dp }
 
+    // A few lines of context above the match.
+    fun scrollToLine(line: Int) {
+        scope.launch { listState.animateScrollToItem((firstBodyItem + line - 3).coerceAtLeast(0)) }
+    }
+
     fun goTo(index: Int) {
         if (matches.isEmpty()) return
         current = (index + matches.size) % matches.size
-        // A few lines of context above the match.
-        scope.launch { listState.animateScrollToItem((firstBodyItem + matches[current].line - 3).coerceAtLeast(0)) }
+        scrollToLine(matches[current].line)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -180,8 +183,7 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                     query = it
                     current = 0
                     // Jump to the first match as the user types.
-                    val first = BodySearch.find(formatted.lines, it).firstOrNull()
-                    if (first != null) scope.launch { listState.animateScrollToItem((firstBodyItem + first.line - 3).coerceAtLeast(0)) }
+                    BodySearch.find(formatted.lines, it).firstOrNull()?.let { first -> scrollToLine(first.line) }
                 },
                 position = if (matches.isEmpty()) null else current + 1,
                 total = matches.size,
@@ -202,7 +204,7 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                             append(": ")
                             append(value)
                         },
-                        style = codeStyle(),
+                        style = CODE,
                         modifier = Modifier.padding(vertical = 2.dp),
                     )
                 }
@@ -216,7 +218,7 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                             Row(Modifier.fillMaxWidth().background(DebugKitColors.Code)) {
                                 Text(
                                     text = (index + 1).toString(),
-                                    style = codeStyle(),
+                                    style = CODE,
                                     color = DebugKitColors.TextFaint,
                                     textAlign = TextAlign.End,
                                     modifier = Modifier.width(gutter).padding(end = 10.dp),
@@ -239,7 +241,7 @@ private fun MessageTab(headers: List<Pair<String, String>>, body: CapturedBody?,
                                             }
                                         }
                                     },
-                                    style = codeStyle(),
+                                    style = CODE,
                                 )
                             }
                         }
@@ -303,13 +305,7 @@ private val OTHER_MATCH = DebugKitColors.Warning.copy(alpha = 0.55f)
 private val CURRENT_MATCH = DebugKitColors.Accent
 
 private fun LazyListScope.sectionHeader(title: String) = item {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, letterSpacing = 0.6.sp),
-        fontWeight = FontWeight.SemiBold,
-        color = DebugKitColors.TextSecondary,
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
-    )
+    DebugKitSectionLabel(title, Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp))
 }
 
 @Composable
@@ -317,7 +313,7 @@ private fun Placeholder(text: String) {
     Text(text, color = DebugKitColors.TextSecondary, style = MaterialTheme.typography.bodySmall)
 }
 
-private fun codeStyle() = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp, lineHeight = 18.sp)
+private val CODE = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 12.sp, lineHeight = 18.sp)
 
 private val MONO = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 13.sp, lineHeight = 18.sp)
 
@@ -328,19 +324,3 @@ private fun jsonColors(): JsonColors =
 private class FormattedBody(val lines: List<String>, val isJson: Boolean)
 
 private val TABS = listOf("Overview", "Request", "Response")
-
-private fun copy(context: Context, label: String, text: String) {
-    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text))
-    // Android 13+ shows its own clipboard confirmation.
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
-    }
-}
-
-private fun share(context: Context, tx: HttpTransaction) {
-    val send = Intent(Intent.ACTION_SEND)
-        .setType("text/plain")
-        .putExtra(Intent.EXTRA_SUBJECT, "${tx.method} ${tx.url}")
-        .putExtra(Intent.EXTRA_TEXT, TransactionExport.toShareText(tx))
-    context.startActivity(Intent.createChooser(send, "Share request"))
-}

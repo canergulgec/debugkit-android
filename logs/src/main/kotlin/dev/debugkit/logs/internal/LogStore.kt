@@ -38,8 +38,6 @@ internal object LogStore {
         changes.value = id
     }
 
-    private val LogEntry.isError: Boolean get() = priority >= android.util.Log.ERROR
-
     fun snapshot(): List<LogEntry> = synchronized(buffer) { buffer.toList() }
 
     fun clear() {

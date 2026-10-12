@@ -13,11 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,7 +33,11 @@ import dev.debugkit.network.internal.JsonFormatter
 import dev.debugkit.network.internal.MockErrorKind
 import dev.debugkit.network.internal.MockRule
 import dev.debugkit.network.internal.MockType
+import dev.debugkit.ui.DebugKitButton
+import dev.debugkit.ui.DebugKitChip
+import dev.debugkit.ui.DebugKitColors
 import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.DebugKitSectionLabel
 import dev.debugkit.ui.DebugKitSubpage
 import org.json.JSONArray
 import org.json.JSONObject
@@ -88,10 +89,10 @@ internal fun MockRuleEditor(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        SectionLabel("Method")
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DebugKitSectionLabel("Method")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             METHODS.forEach { (label, value) ->
-                FilterChip(selected = method == value, onClick = { method = value }, label = { Text(label) })
+                DebugKitChip(label, selected = method == value, onClick = { method = value })
             }
         }
 
@@ -104,11 +105,11 @@ internal fun MockRuleEditor(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        SectionLabel("Respond with")
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(type == MockType.Replace, { type = MockType.Replace }, { Text("Custom response") })
-            FilterChip(type == MockType.NetworkError, { type = MockType.NetworkError }, { Text("Network error") })
-            FilterChip(type == MockType.DelayOnly, { type = MockType.DelayOnly }, { Text("Real response, delayed") })
+        DebugKitSectionLabel("Respond with")
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            DebugKitChip("Custom response", type == MockType.Replace, { type = MockType.Replace })
+            DebugKitChip("Network error", type == MockType.NetworkError, { type = MockType.NetworkError })
+            DebugKitChip("Real response, delayed", type == MockType.DelayOnly, { type = MockType.DelayOnly })
         }
 
         when (type) {
@@ -130,9 +131,9 @@ internal fun MockRuleEditor(
                         modifier = Modifier.weight(0.65f),
                     )
                 }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     QUICK_STATUS_CODES.forEach { quick ->
-                        FilterChip(statusCode == quick, { statusCode = quick }, { Text(quick) })
+                        DebugKitChip(quick, statusCode == quick, { statusCode = quick })
                     }
                 }
                 OutlinedTextField(
@@ -146,18 +147,18 @@ internal fun MockRuleEditor(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { JsonFormatter.prettyPrint(body)?.let { body = it } }) { Text("Format JSON") }
                     if (showJsonWarning) {
-                        Text("Body is not valid JSON", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        Text("Body is not valid JSON", color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
-            MockType.NetworkError -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(errorKind == MockErrorKind.Timeout, { errorKind = MockErrorKind.Timeout }, { Text("Timeout") })
-                FilterChip(errorKind == MockErrorKind.NoConnection, { errorKind = MockErrorKind.NoConnection }, { Text("No connection") })
+            MockType.NetworkError -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                DebugKitChip("Timeout", errorKind == MockErrorKind.Timeout, { errorKind = MockErrorKind.Timeout })
+                DebugKitChip("No connection", errorKind == MockErrorKind.NoConnection, { errorKind = MockErrorKind.NoConnection })
             }
             MockType.DelayOnly -> Text(
                 "The call goes to the server as usual and the real response is returned after the delay below.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = DebugKitColors.TextSecondary,
             )
         }
 
@@ -171,10 +172,12 @@ internal fun MockRuleEditor(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        problems.forEach { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+        problems.forEach { Text(it, color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(
+            DebugKitButton(
+                text = "Save",
+                primary = true,
                 enabled = problems.isEmpty(),
                 onClick = {
                     onSave(
@@ -191,22 +194,17 @@ internal fun MockRuleEditor(
                         ),
                     )
                 },
-            ) { Text("Save") }
-            OutlinedButton(onClick = onCancel) { Text("Cancel") }
+            )
+            DebugKitButton("Cancel", onClick = onCancel)
             Spacer(Modifier.weight(1f))
             if (onDelete != null) {
                 TextButton(
                     onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    colors = ButtonDefaults.textButtonColors(contentColor = DebugKitColors.Error),
                 ) { Text("Delete") }
             }
         }
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 private fun isJson(text: String): Boolean = try {

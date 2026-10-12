@@ -16,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
  */
 internal object DebugSettings {
 
-    private const val PREFS_NAME = "debugkit_settings"
+    /** Shared with other core stores, such as recent deep links. */
+    const val PREFS_NAME = "debugkit_settings"
     private const val KEY_ENVIRONMENT = "environment.selected"
     private const val KEY_CUSTOM_URL = "environment.custom_url"
     private const val FLAG_PREFIX = "flag."

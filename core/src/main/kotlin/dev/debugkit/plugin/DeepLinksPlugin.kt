@@ -112,15 +112,7 @@ internal object DeepLinksPlugin : DebugPlugin {
 
             if (DeepLinkStore.recent.isNotEmpty()) {
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { SectionHeader("Recent") }
-                        Text(
-                            "Clear",
-                            color = DebugKitColors.Accent,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(end = 20.dp, top = 12.dp).clickable(onClick = DeepLinkStore::clearRecent),
-                        )
-                    }
+                    SectionHeader("Recent", actionLabel = "Clear", onAction = DeepLinkStore::clearRecent)
                     CardGroup(DeepLinkStore.recent.toList()) { uri -> LinkRow(title = null, uri = uri, onPick = { link = uri }) }
                 }
             }

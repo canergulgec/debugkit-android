@@ -25,6 +25,16 @@ internal object TransactionExport {
         }
     }
 
+    /** One line per call for crash records, e.g. `14:32:08 500 POST https://api.example.com/cart (231 ms) [mock: Cart fails]`. */
+    fun callLine(tx: TransactionSummary): String = buildString {
+        append(formatTime(tx.requestedAt)).append(' ')
+        append(tx.statusLabel)
+        append(' ').append(tx.method).append(' ').append(tx.url)
+        tx.durationMs?.let { append(" (").append(it).append(" ms)") }
+        tx.error?.let { append(" error: ").append(it) }
+        tx.mockRuleName?.let { append(" [mock: ").append(it).append(']') }
+    }
+
     /** Everything about the call as plain text, for bug reports. */
     fun toShareText(tx: HttpTransaction): String = buildString {
         appendLine("${tx.method} ${tx.url}")

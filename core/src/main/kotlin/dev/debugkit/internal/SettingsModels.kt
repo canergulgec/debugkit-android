@@ -7,12 +7,17 @@ internal sealed interface FlagDefinition {
     val title: String
     val description: String?
 
+    /** The declared default: a Boolean for [BooleanFlag], a String otherwise. */
+    val defaultValue: Any
+
     data class BooleanFlag(
         override val key: String,
         override val title: String,
         override val description: String?,
         val default: Boolean,
-    ) : FlagDefinition
+    ) : FlagDefinition {
+        override val defaultValue: Any get() = default
+    }
 
     data class ChoiceFlag(
         override val key: String,
@@ -20,14 +25,18 @@ internal sealed interface FlagDefinition {
         override val description: String?,
         val options: List<String>,
         val default: String,
-    ) : FlagDefinition
+    ) : FlagDefinition {
+        override val defaultValue: Any get() = default
+    }
 
     data class TextFlag(
         override val key: String,
         override val title: String,
         override val description: String?,
         val default: String,
-    ) : FlagDefinition
+    ) : FlagDefinition {
+        override val defaultValue: Any get() = default
+    }
 }
 
 internal sealed interface ActionItem {

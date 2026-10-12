@@ -53,8 +53,9 @@ internal class HierarchyCapture private constructor(private val activity: Activi
     }
 
     private fun walkSemantics(node: SemanticsNode, depth: Int, parent: Int) {
-        val bounds = node.boundsInWindow
-        if (bounds.width <= 0f || bounds.height <= 0f) return
+        val window = node.boundsInWindow
+        if (window.width <= 0f || window.height <= 0f) return
+        val bounds = Bounds(window.left.roundToInt(), window.top.roundToInt(), window.right.roundToInt(), window.bottom.roundToInt())
         val config = node.config
 
         val text = config.getOrNull(SemanticsProperties.Text)?.joinToString(" ") { it.text }
@@ -71,7 +72,7 @@ internal class HierarchyCapture private constructor(private val activity: Activi
             add("Kind" to "Compose")
             testTag?.let { add("Test tag" to it) }
             role?.let { add("Role" to it.toString()) }
-            addBounds(Bounds(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()))
+            addBounds(bounds)
             for ((key, value) in config) {
                 if (key == SemanticsProperties.TestTag || key == SemanticsProperties.Role) continue
                 add(key.name to describe(value))
@@ -87,7 +88,7 @@ internal class HierarchyCapture private constructor(private val activity: Activi
             kind = LayerKind.Compose,
             name = name,
             label = text?.take(LABEL_LENGTH) ?: config.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull(),
-            bounds = Bounds(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()),
+            bounds = bounds,
             attributes = attributes,
         )
         node.children.forEach { walkSemantics(it, depth + 1, id) }

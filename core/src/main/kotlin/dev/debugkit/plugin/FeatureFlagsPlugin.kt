@@ -112,11 +112,7 @@ internal object FeatureFlagsPlugin : DebugPlugin {
     @Composable
     private fun FlagRow(flag: FlagDefinition) {
         val override = DebugSettings.overrides[flag.key]
-        val appValue: Any = DebugSettings.lastDefaults[flag.key] ?: when (flag) {
-            is FlagDefinition.BooleanFlag -> flag.default
-            is FlagDefinition.ChoiceFlag -> flag.default
-            is FlagDefinition.TextFlag -> flag.default
-        }
+        val appValue: Any = DebugSettings.lastDefaults[flag.key] ?: flag.defaultValue
 
         DebugKitCard(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

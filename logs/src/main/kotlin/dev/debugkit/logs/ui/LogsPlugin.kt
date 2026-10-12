@@ -27,7 +27,11 @@ internal object LogsPlugin : DebugPlugin {
         return DebugTile(
             label = "Logs",
             value = compact(LogStore.size),
-            note = if (errors == 0) "no errors" else if (errors == 1) "1 error" else "$errors errors",
+            note = when (errors) {
+                0 -> "no errors"
+                1 -> "1 error"
+                else -> "$errors errors"
+            },
             tone = if (errors == 0) DebugTone.Neutral else DebugTone.Error,
         )
     }

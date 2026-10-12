@@ -31,7 +31,6 @@ public class DebugKitConfig internal constructor() {
     internal var pushHandler: ((Map<String, String>) -> Unit)? = null
     internal val pushTemplates = mutableListOf<PushTemplate>()
 
-
     /** Backend environments QA can switch between. Read the choice with [DebugKit.environmentUrl]. */
     public fun environments(block: EnvironmentsBuilder.() -> Unit) {
         EnvironmentsBuilder(environments).block()

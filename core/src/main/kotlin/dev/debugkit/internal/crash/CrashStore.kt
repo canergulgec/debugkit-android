@@ -19,6 +19,9 @@ internal class CrashStore(private val root: File) {
         val seen: Boolean,
         val dir: File,
     ) {
+        /** The exception's simple name, e.g. `IllegalStateException`. */
+        val shortName: String get() = exceptionClass.substringAfterLast('.')
+
         /** Attachment file names, in a stable order; `crash.txt` itself is not included. */
         val attachments: List<String>
             get() = dir.list()?.filter { it != CRASH_FILE && it != META_FILE }?.sorted().orEmpty()

@@ -26,7 +26,7 @@ internal object CrashDialog {
 
     private fun show(activity: Activity, crash: CrashStore.Crash) {
         CrashReporter.markSeen(crash)
-        val headline = crash.exceptionClass.substringAfterLast('.') + (crash.message?.let { ": $it" } ?: "")
+        val headline = crash.shortName + (crash.message?.let { ": $it" } ?: "")
         AlertDialog.Builder(activity)
             .setTitle("The app crashed last time")
             .setMessage("$headline\n\n${CrashFormatter.formatTime(crash.timestamp)}")

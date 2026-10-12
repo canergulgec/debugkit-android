@@ -1,7 +1,6 @@
 package dev.debugkit.plugin
 
 import android.content.Context
-import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -50,6 +49,8 @@ import dev.debugkit.ui.DebugKitFonts
 import dev.debugkit.ui.DebugKitSegments
 import dev.debugkit.ui.DebugKitSubpage
 import dev.debugkit.ui.DebugKitTitleButton
+import dev.debugkit.ui.copyToClipboard
+import dev.debugkit.ui.shareText
 
 /** Recorded crashes, each with the logs and network calls that led up to it. */
 internal object CrashesPlugin : DebugPlugin {
@@ -110,7 +111,7 @@ internal object CrashesPlugin : DebugPlugin {
                     DebugKitCard(Modifier.fillMaxWidth(), onClick = { onSelect(crash) }) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = crash.exceptionClass.substringAfterLast('.'),
+                                text = crash.shortName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DebugKitColors.Error,
@@ -140,7 +141,7 @@ internal object CrashesPlugin : DebugPlugin {
             CrashReporter.store.read(crash, files[tab]).orEmpty().lines()
         }
         val highlight = rememberStackHighlighter(context.packageName)
-        DebugKitSubpage(crash.exceptionClass.substringAfterLast('.'))
+        DebugKitSubpage(crash.shortName)
 
         Column(Modifier.fillMaxSize()) {
             Row(
@@ -218,10 +219,6 @@ internal object CrashesPlugin : DebugPlugin {
                 append(CrashReporter.store.read(crash, file).orEmpty())
             }
         }
-        val send = Intent(Intent.ACTION_SEND)
-            .setType("text/plain")
-            .putExtra(Intent.EXTRA_SUBJECT, "Crash: ${crash.exceptionClass.substringAfterLast('.')}")
-            .putExtra(Intent.EXTRA_TEXT, text)
-        context.startActivity(Intent.createChooser(send, "Share crash"))
+        shareText(context, text, chooserTitle = "Share crash", subject = "Crash: ${crash.shortName}")
     }
 }

@@ -256,6 +256,27 @@ public fun DebugKitEmpty(text: String, modifier: Modifier = Modifier) {
     }
 }
 
+/** Something QA should act on, such as a pending restart or missing permission, with the action beside it. */
+@Composable
+public fun DebugKitBanner(message: String, actionLabel: String, onAction: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(DebugKitColors.WarningContainer)
+            .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = DebugKitColors.Warning,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+        )
+        DebugKitButton(actionLabel, onClick = onAction)
+    }
+}
+
 /** An action button: filled with the accent when [primary], otherwise a quiet bordered one. */
 @Composable
 public fun DebugKitButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, primary: Boolean = false, enabled: Boolean = true) {

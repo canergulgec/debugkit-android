@@ -7,25 +7,19 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.debugkit.network.internal.NetworkNotification
+import dev.debugkit.ui.DebugKitBanner
 
 /**
  * Offers to turn on the request notification when it is enabled in config but cannot be shown.
@@ -53,24 +47,12 @@ internal fun NotificationPermissionBanner() {
     if (canPost) return
 
     val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !denied
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-    ) {
-        Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Turn on notifications to see a live request count.",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f).padding(vertical = 12.dp),
-            )
-            TextButton(
-                onClick = {
-                    if (canAsk) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) else openNotificationSettings(context)
-                },
-            ) { Text(if (canAsk) "Allow" else "Settings") }
-        }
-    }
+    DebugKitBanner(
+        message = "Turn on notifications to see a live request count.",
+        actionLabel = if (canAsk) "Allow" else "Settings",
+        onAction = { if (canAsk) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) else openNotificationSettings(context) },
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+    )
 }
 
 private fun openNotificationSettings(context: Context) {

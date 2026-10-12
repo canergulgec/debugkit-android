@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +21,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,11 +48,13 @@ import dev.debugkit.internal.push.PushStore
 import dev.debugkit.internal.push.PushTemplate
 import dev.debugkit.internal.push.ReceivedPush
 import dev.debugkit.internal.push.TestPushSender
+import dev.debugkit.ui.DebugKitBanner
 import dev.debugkit.ui.DebugKitButton
 import dev.debugkit.ui.DebugKitCard
 import dev.debugkit.ui.DebugKitChip
 import dev.debugkit.ui.DebugKitColors
 import dev.debugkit.ui.DebugKitFonts
+import dev.debugkit.ui.copyToClipboard
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -114,16 +113,10 @@ internal object PushPlugin : DebugPlugin {
 
             // Right under the token: what QA checks most, so it must not hide below the form.
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f)) { SectionHeader(if (PushStore.received.isEmpty()) "Received" else "Received (${PushStore.received.size})") }
-                    if (PushStore.received.isNotEmpty()) {
-                        Text(
-                            "Clear",
-                            color = DebugKitColors.Accent,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(end = 20.dp, top = 12.dp).clickable(onClick = PushStore::clearReceived),
-                        )
-                    }
+                if (PushStore.received.isEmpty()) {
+                    SectionHeader("Received")
+                } else {
+                    SectionHeader("Received (${PushStore.received.size})", actionLabel = "Clear", onAction = PushStore::clearReceived)
                 }
             }
             if (PushStore.received.isEmpty()) {
@@ -283,11 +276,12 @@ internal object PushPlugin : DebugPlugin {
         }
         DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val current = token
                 when {
                     failure != null -> Text("Could not get the token: $failure", color = DebugKitColors.Error, style = MaterialTheme.typography.bodySmall)
-                    token == null -> Text("Loading…", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
-                    token!!.isEmpty() -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
-                    else -> Text(token!!, style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    current == null -> Text("Loading…", style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary)
+                    current.isEmpty() -> Text("The app returned no token.", style = MaterialTheme.typography.bodySmall)
+                    else -> Text(current, style = MaterialTheme.typography.bodySmall.copy(fontFamily = DebugKitFonts.Mono), maxLines = 3, overflow = TextOverflow.Ellipsis)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     DebugKitButton(
@@ -348,33 +342,20 @@ internal object PushPlugin : DebugPlugin {
         }
         if (canPost) return
         val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !denied
-        Surface(
-            color = DebugKitColors.WarningContainer,
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Row(Modifier.padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Notifications are off for this app, so test notifications cannot be shown.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DebugKitColors.Warning,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                )
-                DebugKitButton(
-                    if (canAsk) "Allow" else "Settings",
-                    onClick = {
-                        if (canAsk) {
-                            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            context.startActivity(
-                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-                            )
-                        }
-                    },
-                )
-            }
-        }
+        DebugKitBanner(
+            message = "Notifications are off for this app, so test notifications cannot be shown.",
+            actionLabel = if (canAsk) "Allow" else "Settings",
+            onAction = {
+                if (canAsk) {
+                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                    )
+                }
+            },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
     }
 
     private val TIME = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)

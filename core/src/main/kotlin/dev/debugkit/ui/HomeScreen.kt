@@ -1,7 +1,7 @@
 package dev.debugkit.ui
 
-import android.content.pm.ApplicationInfo
 import android.text.format.DateUtils
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,19 +39,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.pm.PackageInfoCompat
 import dev.debugkit.R
 import dev.debugkit.internal.ActionItem
 import dev.debugkit.internal.AppRestarter
 import dev.debugkit.internal.DebugSettings
 import dev.debugkit.internal.EnvironmentResolver
 import dev.debugkit.internal.crash.CrashReporter
+import dev.debugkit.internal.isDebuggable
 import dev.debugkit.internal.packageInfo
+import dev.debugkit.internal.versionLabel
 import dev.debugkit.plugin.CrashesPlugin
 import dev.debugkit.plugin.DebugPlugin
 import dev.debugkit.plugin.DebugTile
 import dev.debugkit.plugin.EnvironmentPlugin
 import dev.debugkit.plugin.QuickActionsPlugin
+import dev.debugkit.plugin.RestartBanner
 
 private const val HOME_ACTIONS = 3
 
@@ -83,10 +84,8 @@ internal fun HomeScreen(plugins: List<DebugPlugin>, onOpen: (DebugPlugin) -> Uni
 private fun Header(onClose: () -> Unit) {
     val context = LocalContext.current
     val subtitle = remember {
-        val info = context.packageInfo()
         val label = context.applicationInfo.loadLabel(context.packageManager)
-        val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        "$label · ${info.versionName} (${PackageInfoCompat.getLongVersionCode(info)})" + if (debuggable) " · debug" else ""
+        "$label · ${context.packageInfo().versionLabel}" + if (context.isDebuggable) " · debug" else ""
     }
     Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -153,6 +152,12 @@ private fun Tile(tile: DebugTile, onClick: () -> Unit, modifier: Modifier = Modi
 
 private fun DebugTone.dot(): Color = if (this == DebugTone.Neutral) DebugKitColors.Info else color()
 
+// The last-crash card's red-tinted surface; only used here, so not part of DebugKitColors.
+private val CrashCard = Color(0xFF1A1416)
+private val CrashCardBorder = Color(0xFF4A2629)
+private val CrashCardText = Color(0xFFC9AFB1)
+private val CrashCardAction = Color(0xFFFFB3B3)
+
 @Composable
 private fun LastCrash(onView: () -> Unit) {
     if (!CrashReporter.isInstalled) return
@@ -162,8 +167,8 @@ private fun LastCrash(onView: () -> Unit) {
     Surface(
         onClick = onView,
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF1A1416),
-        border = BorderStroke(1.dp, Color(0xFF4A2629)),
+        color = CrashCard,
+        border = BorderStroke(1.dp, CrashCardBorder),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,9 +181,9 @@ private fun LastCrash(onView: () -> Unit) {
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
-            Text(crash.exceptionClass.substringAfterLast('.'), style = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DebugKitColors.Text))
-            crash.message?.let { Text(it, style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = Color(0xFFC9AFB1), maxLines = 2, overflow = TextOverflow.Ellipsis) }
-            Text("View crash", color = Color(0xFFFFB3B3), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
+            Text(crash.shortName, style = TextStyle(fontFamily = DebugKitFonts.Mono, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DebugKitColors.Text))
+            crash.message?.let { Text(it, style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp), color = CrashCardText, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            Text("View crash", color = CrashCardAction, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
@@ -187,14 +192,17 @@ private fun LastCrash(onView: () -> Unit) {
 private fun QuickActions(onAll: () -> Unit) {
     val buttons = DebugSettings.actions.filterIsInstance<ActionItem.Button>()
     if (buttons.isEmpty()) return
+    val shown = buttons.take(HOME_ACTIONS)
+    // Toggles and values only appear on the full page, so they also call for "All".
+    val hasMore = DebugSettings.actions.count { it !is ActionItem.Section } > shown.size
     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         DebugKitSectionLabel("Quick actions", Modifier.weight(1f))
-        if (DebugSettings.actions.size > HOME_ACTIONS) {
+        if (hasMore) {
             Text("All", color = DebugKitColors.Accent, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable(role = Role.Button, onClick = onAll).padding(8.dp))
         }
     }
     DebugKitCard {
-        buttons.take(HOME_ACTIONS).forEachIndexed { index, action ->
+        shown.forEachIndexed { index, action ->
             if (index > 0) HorizontalDivider(color = DebugKitColors.Border)
             Row(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button) { action.onClick() }.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -210,18 +218,10 @@ private fun QuickActions(onAll: () -> Unit) {
 /** The App tab: a list of configuration pages, each opening on its own. */
 @Composable
 internal fun AppScreen(plugins: List<DebugPlugin>, onOpen: (DebugPlugin) -> Unit) {
-    val context = LocalContext.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         DebugKitTitle("App")
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (DebugSettings.needsRestart) {
-                Surface(shape = RoundedCornerShape(14.dp), color = Color(0xFF1C1810), border = BorderStroke(1.dp, Color(0xFF4A3A18))) {
-                    Row(Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Environment changed. Restart to apply.", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFE9D9B6), modifier = Modifier.weight(1f))
-                        TextButton(onClick = { AppRestarter.restart(context) }) { Text("Restart", color = DebugKitColors.Warning, fontWeight = FontWeight.SemiBold) }
-                    }
-                }
-            }
+            if (DebugSettings.needsRestart) RestartBanner("Environment changed. Restart to apply.")
             DebugKitCard {
                 plugins.forEachIndexed { index, plugin ->
                     if (index > 0) HorizontalDivider(color = DebugKitColors.Border)
