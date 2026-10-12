@@ -8,13 +8,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +35,7 @@ import dev.debugkit.DebugKit
 
 class MainActivity : ComponentActivity() {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -62,6 +73,32 @@ class MainActivity : ComponentActivity() {
                         }
                         Button(onClick = { startActivity(Intent(this@MainActivity, XmlActivity::class.java)) }) {
                             Text("Open XML screen")
+                        }
+                        // Dialogs and sheets live in windows of their own; the Layers inspector shows them over the screen.
+                        var showDialog by remember { mutableStateOf(false) }
+                        var showSheet by remember { mutableStateOf(false) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { showDialog = true }) { Text("Show dialog") }
+                            Button(onClick = { showSheet = true }) { Text("Show bottom sheet") }
+                        }
+                        if (showDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showDialog = false },
+                                title = { Text("Delete order?") },
+                                text = { Text("Shake the device now to inspect this dialog under Layers.") },
+                                confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Delete") } },
+                                dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancel") } },
+                                modifier = Modifier.testTag("DeleteDialog"),
+                            )
+                        }
+                        if (showSheet) {
+                            ModalBottomSheet(onDismissRequest = { showSheet = false }, modifier = Modifier.testTag("FilterSheet")) {
+                                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text("Filters", style = MaterialTheme.typography.titleLarge)
+                                    Text("Shake the device now to inspect this sheet under Layers.")
+                                    Button(onClick = { showSheet = false }, modifier = Modifier.fillMaxWidth()) { Text("Apply") }
+                                }
+                            }
                         }
                         // A classic View inside Compose, shown in orange by the Layers inspector.
                         AndroidView(

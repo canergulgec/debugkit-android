@@ -19,9 +19,10 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * Walks an activity's window into a flat list of [LayerNode]s: Views as they are, and Compose
+ * Walks an activity's windows into a flat list of [LayerNode]s: Views as they are, and Compose
  * content through its semantics tree, the public API Compose tests use. Views placed inside
- * Compose with AndroidView are attached under the Compose node that contains them.
+ * Compose with AndroidView are attached under the Compose node that contains them. Dialogs,
+ * bottom sheets and popups are their own windows; each is walked as a further root.
  */
 internal class HierarchyCapture private constructor(private val activity: Activity) {
 
@@ -30,6 +31,11 @@ internal class HierarchyCapture private constructor(private val activity: Activi
     private val density = resources.displayMetrics.density
     private val fontScale = resources.configuration.fontScale
     private val location = IntArray(2)
+
+    // The window being walked, and where it sits relative to the activity's window.
+    private var window = 0
+    private var offsetX = 0
+    private var offsetY = 0
 
     @SuppressLint("DiscouragedApi") // The fragment library is not a dependency, so its id is looked up.
     private val fragmentTagId = resources.getIdentifier("fragment_container_view_tag", "id", activity.packageName)
@@ -53,9 +59,14 @@ internal class HierarchyCapture private constructor(private val activity: Activi
     }
 
     private fun walkSemantics(node: SemanticsNode, depth: Int, parent: Int) {
-        val window = node.boundsInWindow
-        if (window.width <= 0f || window.height <= 0f) return
-        val bounds = Bounds(window.left.roundToInt(), window.top.roundToInt(), window.right.roundToInt(), window.bottom.roundToInt())
+        val rect = node.boundsInWindow
+        if (rect.width <= 0f || rect.height <= 0f) return
+        val bounds = Bounds(
+            rect.left.roundToInt() + offsetX,
+            rect.top.roundToInt() + offsetY,
+            rect.right.roundToInt() + offsetX,
+            rect.bottom.roundToInt() + offsetY,
+        )
         val config = node.config
 
         val text = config.getOrNull(SemanticsProperties.Text)?.joinToString(" ") { it.text }
@@ -124,6 +135,7 @@ internal class HierarchyCapture private constructor(private val activity: Activi
         val attributes = buildList {
             add("Kind" to if (kind == LayerKind.Interop) "View inside Compose (AndroidView)" else "View")
             add("Class" to view.javaClass.name)
+            if (parent == -1) add("Window" to AppWindows.describe(view))
             idName?.let { add("Id" to it) }
             fragmentName(view)?.let { add("Fragment" to it) }
             addBounds(bounds)
@@ -180,7 +192,7 @@ internal class HierarchyCapture private constructor(private val activity: Activi
         attributes: List<Pair<String, String>>,
     ): Int {
         val id = nodes.size
-        nodes += LayerNode(id, parent, depth, kind, name, label, bounds, attributes)
+        nodes += LayerNode(id, parent, depth, kind, name, label, bounds, attributes, window)
         return id
     }
 
@@ -191,7 +203,9 @@ internal class HierarchyCapture private constructor(private val activity: Activi
 
     private fun boundsOf(view: View): Bounds {
         view.getLocationInWindow(location)
-        return Bounds(location[0], location[1], location[0] + view.width, location[1] + view.height)
+        val left = location[0] + offsetX
+        val top = location[1] + offsetY
+        return Bounds(left, top, left + view.width, top + view.height)
     }
 
     private fun resourceName(id: Int): String? =
@@ -210,11 +224,29 @@ internal class HierarchyCapture private constructor(private val activity: Activi
     companion object {
         private const val LABEL_LENGTH = 40
 
-        /** Main thread only: Views and Compose state must be read where they are drawn. */
-        fun capture(activity: Activity): List<LayerNode> =
-            HierarchyCapture(activity).apply { walkView(activity.window.decorView, 0, -1, insideCompose = false) }
-                .nodes
-                .let(LayerGeometry::preOrder)
+        /**
+         * Main thread only: Views and Compose state must be read where they are drawn. [roots]
+         * are the activity's windows bottom to top, its own first; see [AppWindows].
+         */
+        fun capture(activity: Activity, roots: List<View>): List<LayerNode> {
+            val capture = HierarchyCapture(activity)
+            val origin = windowOrigin(roots.first())
+            roots.forEachIndexed { index, root ->
+                val (x, y) = windowOrigin(root)
+                capture.window = index
+                capture.offsetX = x - origin.first
+                capture.offsetY = y - origin.second
+                capture.walkView(root, 0, -1, insideCompose = false)
+            }
+            return LayerGeometry.preOrder(capture.nodes)
+        }
+
+        /** Where a window's root sits on the screen. */
+        fun windowOrigin(root: View): Pair<Int, Int> {
+            val location = IntArray(2)
+            root.getLocationOnScreen(location)
+            return location[0] to location[1]
+        }
 
         private const val ANDROID_VIEW_HOLDER = "androidx.compose.ui.viewinterop.AndroidViewHolder"
 

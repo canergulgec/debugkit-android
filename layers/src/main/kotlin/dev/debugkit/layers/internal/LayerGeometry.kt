@@ -5,13 +5,14 @@ internal object LayerGeometry {
 
     /**
      * The element a tap at window pixel ([x], [y]) means: the deepest node containing the point,
-     * among nodes whose depth is in [depths]. Among equally deep matches, the last one wins,
-     * since later siblings draw on top.
+     * among nodes whose depth is in [depths], in the topmost window there, since a dialog or
+     * sheet covers the screen below it. Among equally deep matches, the last one wins, since
+     * later siblings draw on top.
      */
     fun hitTest(nodes: List<LayerNode>, x: Int, y: Int, depths: IntRange): LayerNode? =
         nodes.withIndex()
             .filter { (_, node) -> node.depth in depths && node.bounds.contains(x, y) }
-            .maxWithOrNull(compareBy<IndexedValue<LayerNode>> { it.value.depth }.thenBy { it.index })
+            .maxWithOrNull(compareBy<IndexedValue<LayerNode>> { it.value.window }.thenBy { it.value.depth }.thenBy { it.index })
             ?.value
 
     /**
@@ -25,8 +26,10 @@ internal object LayerGeometry {
         // A quarter of the screen: bigger than any control, smaller than page-level containers.
         val large = screenWidth.toLong() * screenHeight / 4
         if (direct != null && direct.bounds.area < large) return direct
+        // Nothing under a dialog's scrim can be meant, so only the tapped window and those above it.
+        val lowestWindow = direct?.window ?: 0
         val nearby = nodes.withIndex()
-            .filter { (_, node) -> node.bounds.area in 1 until large }
+            .filter { (_, node) -> node.window >= lowestWindow && node.bounds.area in 1 until large }
             .map { (index, node) -> Triple(node, node.bounds.distanceTo(x, y), index) }
             .filter { it.second <= tolerance }
             // Closest first; then the deeper element, then the one drawn on top.
@@ -38,19 +41,23 @@ internal object LayerGeometry {
      * The level each node is drawn at in 3D. A node that is its parent's only child and exactly
      * covers it stays on the parent's level: stacks of identical full-screen wrappers (DecorView,
      * content frame, ComposeView, …) would otherwise add slices that look the same, and steps of
-     * the depth slider that change nothing. [nodes] must be in pre-order.
+     * the depth slider that change nothing. Each further window (dialog, sheet, popup) starts one
+     * level above everything drawn before it. [nodes] must be in pre-order.
      */
     fun visualLevels(nodes: List<LayerNode>): Map<Int, Int> {
         val byId = nodes.associateBy { it.id }
         val childCount = nodes.groupingBy { it.parent }.eachCount()
         val levels = HashMap<Int, Int>(nodes.size)
+        var highest = -1
         nodes.forEach { node ->
             val parent = byId[node.parent]
-            levels[node.id] = when {
-                parent == null -> 0
+            val level = when {
+                parent == null -> if (node.window == 0) 0 else highest + 1
                 childCount[parent.id] == 1 && parent.bounds == node.bounds -> levels.getValue(parent.id)
                 else -> levels.getValue(parent.id) + 1
             }
+            levels[node.id] = level
+            highest = maxOf(highest, level)
         }
         return levels
     }

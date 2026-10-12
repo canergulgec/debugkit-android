@@ -79,4 +79,32 @@ class LayerGeometryTest {
         assertEquals(overlay, LayerGeometry.pick(nodes, 50, 190, tolerance = 8, screenWidth = 100, screenHeight = 200))
         assertEquals(root, LayerGeometry.pick(nodes, 5, 120, tolerance = 4, screenWidth = 100, screenHeight = 200))
     }
+
+    // A bottom sheet in its own window: a full-screen scrim root (8) holding the sheet (9) and its button (10).
+    private val scrim = node(8, -1, 0, Bounds(0, 0, 100, 200)).copy(window = 1)
+    private val sheet = node(9, 8, 1, Bounds(0, 120, 100, 200)).copy(window = 1)
+    private val sheetButton = node(10, 9, 2, Bounds(10, 150, 90, 170)).copy(window = 1)
+    private val withSheet = nodes + listOf(scrim, sheet, sheetButton)
+
+    @Test
+    fun `a window on top wins over deeper elements below it`() {
+        // The app's title (depth 2) lies under the scrim (depth 0), which covers it.
+        assertEquals(scrim, LayerGeometry.hitTest(withSheet, 30, 30, 0..10))
+        assertEquals(sheetButton, LayerGeometry.hitTest(withSheet, 30, 160, 0..10))
+    }
+
+    @Test
+    fun `pick never snaps to an element under a window on top`() {
+        // A scrim tap 5 px below the app's title must not select the title.
+        assertEquals(scrim, LayerGeometry.pick(withSheet, 50, 45, tolerance = 8, screenWidth = 100, screenHeight = 200))
+    }
+
+    @Test
+    fun `a window starts above every level drawn before it`() {
+        val levels = LayerGeometry.visualLevels(LayerGeometry.preOrder(withSheet))
+        // The app reaches level 2 (title, button), so the sheet window starts at 3.
+        assertEquals(3, levels[8])
+        assertEquals(4, levels[9])
+        assertEquals(5, levels[10])
+    }
 }

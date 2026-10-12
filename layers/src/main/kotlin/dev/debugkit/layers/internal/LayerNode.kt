@@ -14,8 +14,9 @@ internal enum class LayerKind {
 }
 
 /**
- * One element of the captured screen. [bounds] are in window pixels, the same space as the
- * screenshot. [parent] is -1 for the root.
+ * One element of the captured screen. [bounds] are in the activity window's pixels, the same
+ * space as the screenshot, also for elements of dialogs and popups. [parent] is -1 for the root
+ * of each window.
  */
 internal data class LayerNode(
     val id: Int,
@@ -28,6 +29,8 @@ internal data class LayerNode(
     val label: String?,
     val bounds: Bounds,
     val attributes: List<Pair<String, String>>,
+    /** 0 for the activity's own window; dialogs, sheets and popups above it count up from 1. */
+    val window: Int = 0,
 )
 
 /** A rectangle in window pixels. Plain Kotlin rather than android.graphics.Rect, so it works in unit tests. */
