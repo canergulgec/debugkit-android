@@ -30,6 +30,8 @@ public object DebugKit {
     @Suppress("UNUSED_PARAMETER")
     public fun open(context: Context): Unit = Unit
 
+    public fun close(then: () -> Unit = {}): Unit = then()
+
     public fun environmentUrl(fallback: String): String = fallback
 
     @Suppress("UNUSED_PARAMETER")

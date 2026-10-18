@@ -1,5 +1,5 @@
 [versions]
-agp = "9.2.1"
+agp = "8.10.1"
 kotlin = "2.2.10"
 ksp = "2.3.7"
 
@@ -38,6 +38,6 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-# kotlin-android is auto-applied by AGP 9.x; do not alias it.
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

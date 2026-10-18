@@ -82,4 +82,13 @@ public class ActionsBuilder internal constructor() {
     ): Unit = Unit
 
     public fun info(title: String, value: () -> String?): Unit = Unit
+
+    public fun choice(
+        title: String,
+        options: List<String>,
+        summary: String? = null,
+        selected: () -> String?,
+        pinToHome: Boolean = false,
+        onSelected: (String) -> Unit,
+    ): Unit = Unit
 }
