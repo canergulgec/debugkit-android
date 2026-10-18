@@ -203,6 +203,10 @@ DebugKit.install(this) {
         info("User ID") { session.userId }
         button("Log out") { session.logout() }
         toggle("Verbose logging", isChecked = { logger.verbose }, onCheckedChange = { logger.verbose = it })
+        choice(
+            "Region", options = listOf("EU", "US"),
+            selected = { session.region }, onSelected = { session.region = it },
+        )
     }
     deepLinks {
         link("Product detail", "myapp://product/123")

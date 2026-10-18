@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.debugkit.R
@@ -71,6 +74,15 @@ internal object QuickActionsPlugin : DebugPlugin {
                             Switch(checked = checked, onCheckedChange = change)
                         }
                     }
+                    is ActionItem.Choice -> {
+                        var current by remember(generation) { mutableStateOf(item.selected()) }
+                        ChoiceCard(item, current) { option ->
+                            if (option == current) return@ChoiceCard
+                            item.onSelected(option)
+                            current = item.selected()
+                            generation++
+                        }
+                    }
                     is ActionItem.Info -> {
                         val value = remember(generation) {
                             runCatching { item.value() }.getOrElse { "Error: ${it.message}" }
@@ -82,6 +94,34 @@ internal object QuickActionsPlugin : DebugPlugin {
                                 onClick = value?.let { { copyToClipboard(context, item.title, it) } },
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun ChoiceCard(item: ActionItem.Choice, selected: String?, onSelect: (String) -> Unit) {
+        DebugKitCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+            Column(Modifier.padding(vertical = 8.dp)) {
+                Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(item.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    item.summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary) }
+                }
+                item.options.forEach { option ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(selected = option == selected, role = Role.RadioButton, onClick = { onSelect(option) })
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = option == selected, onClick = null, modifier = Modifier.padding(8.dp))
+                        Text(
+                            option,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (option == selected) FontWeight.SemiBold else FontWeight.Normal,
+                        )
                     }
                 }
             }

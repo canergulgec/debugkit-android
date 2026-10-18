@@ -168,4 +168,22 @@ public class ActionsBuilder internal constructor(private val target: MutableList
     public fun info(title: String, value: () -> String?) {
         target += ActionItem.Info(title, value)
     }
+
+    /**
+     * A single-choice list, shown as radio buttons. DebugKit reads [selected] to show the current
+     * option and calls [onSelected] on the main thread when QA picks another one. Picking the
+     * option that is already selected does nothing. With [pinToHome], the choice also shows on the
+     * Home tab as a segmented control, for settings QA changes on almost every session.
+     */
+    public fun choice(
+        title: String,
+        options: List<String>,
+        summary: String? = null,
+        selected: () -> String?,
+        pinToHome: Boolean = false,
+        onSelected: (String) -> Unit,
+    ) {
+        require(options.isNotEmpty()) { "DebugKit choice \"$title\" needs at least one option" }
+        target += ActionItem.Choice(title, summary, options, selected, onSelected, pinToHome)
+    }
 }

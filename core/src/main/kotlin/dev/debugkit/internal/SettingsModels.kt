@@ -52,6 +52,15 @@ internal sealed interface ActionItem {
     ) : ActionItem
 
     class Info(val title: String, val value: () -> String?) : ActionItem
+
+    class Choice(
+        val title: String,
+        val summary: String?,
+        val options: List<String>,
+        val selected: () -> String?,
+        val onSelected: (String) -> Unit,
+        val pinToHome: Boolean,
+    ) : ActionItem
 }
 
 /** Pure selection logic, kept apart from storage so it can be unit tested. */

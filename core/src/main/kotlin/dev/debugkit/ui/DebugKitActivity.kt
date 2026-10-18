@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.debugkit.internal.PluginRegistry
+import java.lang.ref.WeakReference
 
 /**
  * Hosts the DebugKit UI. Runs in its own task (see the manifest's `taskAffinity`) so it shows
@@ -28,6 +29,7 @@ internal class DebugKitActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        instance = WeakReference(this)
         // On recreation the UI restores its own selection; only honour a fresh launch.
         if (savedInstanceState == null) requestedPluginId = intent.getStringExtra(EXTRA_PLUGIN_ID)
         setContent {
@@ -48,6 +50,15 @@ internal class DebugKitActivity : ComponentActivity() {
         requestedPluginId = intent.getStringExtra(EXTRA_PLUGIN_ID)
     }
 
+    override fun onDestroy() {
+        if (instance?.get() === this) instance = null
+        super.onDestroy()
+        afterDestroyed?.let {
+            afterDestroyed = null
+            it()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         isVisible = true
@@ -65,5 +76,20 @@ internal class DebugKitActivity : ComponentActivity() {
         @Volatile
         var isVisible: Boolean = false
             private set
+
+        private var instance: WeakReference<DebugKitActivity>? = null
+        private var afterDestroyed: (() -> Unit)? = null
+
+        /** Runs [action] once, after the open DebugKit screen is destroyed and its window is gone. */
+        fun afterDestroyed(action: () -> Unit) {
+            afterDestroyed = action
+        }
+
+        /** Finishes the open DebugKit screen, if any. Returns whether there was one. */
+        fun finishCurrent(): Boolean {
+            val activity = instance?.get() ?: return false
+            activity.runOnUiThread { activity.finish() }
+            return true
+        }
     }
 }

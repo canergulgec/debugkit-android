@@ -1,12 +1,13 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     `maven-publish`
 }
 
 android {
     namespace = "dev.debugkit"
-    compileSdk = 37
+    compileSdk = 36
     defaultConfig {
         minSdk = 26
     }

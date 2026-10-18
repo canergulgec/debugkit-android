@@ -25,7 +25,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +72,7 @@ internal fun HomeScreen(plugins: List<DebugPlugin>, onOpen: (DebugPlugin) -> Uni
     ) {
         Header(onClose)
         if (DebugSettings.environments.isNotEmpty()) EnvironmentCard(onChange = { onOpen(EnvironmentPlugin) })
+        DebugSettings.actions.filterIsInstance<ActionItem.Choice>().filter { it.pinToHome }.forEach { PinnedChoice(it) }
         tiles.chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { (plugin, tile) -> Tile(tile, onClick = { onOpen(plugin) }, modifier = Modifier.weight(1f)) }
@@ -100,6 +104,29 @@ private fun Header(onClose: () -> Unit) {
         }
         IconButton(onClick = onClose) {
             Icon(painterResource(R.drawable.debugkit_ic_close), contentDescription = "Close DebugKit", tint = DebugKitColors.Text)
+        }
+    }
+}
+
+/** A choice the app pinned to Home: changes apply immediately, like in Quick Actions. */
+@Composable
+private fun PinnedChoice(item: ActionItem.Choice) {
+    var current by remember { mutableStateOf(item.selected()) }
+    DebugKitCard {
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            DebugKitSectionLabel(item.title)
+            item.summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = DebugKitColors.TextSecondary) }
+            DebugKitSegments(
+                options = item.options,
+                selected = item.options.indexOf(current),
+                onSelect = { index ->
+                    val option = item.options[index]
+                    if (option != current) {
+                        item.onSelected(option)
+                        current = item.selected()
+                    }
+                },
+            )
         }
     }
 }

@@ -43,7 +43,11 @@ internal object LinkParts {
         if (uri.port != -1) add("Port" to uri.port.toString())
         uri.path?.takeIf { it.isNotEmpty() }?.let { add("Path" to it) }
         if (uri.isHierarchical) {
-            uri.queryParameterNames.forEach { name -> add("?$name" to uri.getQueryParameters(name).joinToString()) }
+            uri.queryParameterNames.forEach { name ->
+                add(
+                    "?$name" to uri.getQueryParameters(name).joinToString()
+                )
+            }
         }
         uri.fragment?.let { add("Fragment" to it) }
     }
@@ -66,7 +70,8 @@ internal object DeepLinkStore {
         prefs = context.getSharedPreferences(DebugSettings.PREFS_NAME, Context.MODE_PRIVATE)
         saved = links
         recent.clear()
-        recent.addAll(prefs.getString(KEY_RECENT, null)?.split('\n')?.filter { it.isNotBlank() }.orEmpty())
+        recent.addAll(prefs.getString(KEY_RECENT, null)?.split('\n')?.filter { it.isNotBlank() }
+            .orEmpty())
     }
 
     fun remember(uri: String) {
@@ -113,7 +118,8 @@ internal object DeepLinkOpener {
     }
 
     private fun parse(text: String): Uri? =
-        text.trim().takeIf { it.isNotEmpty() }?.let(Uri::parse)?.takeIf { !it.scheme.isNullOrEmpty() }
+        text.trim().takeIf { it.isNotEmpty() }?.let(Uri::parse)
+            ?.takeIf { !it.scheme.isNullOrEmpty() }
 
     private fun viewIntent(uri: Uri, browsable: Boolean) = Intent(Intent.ACTION_VIEW, uri).apply {
         if (browsable) addCategory(Intent.CATEGORY_BROWSABLE)
@@ -142,22 +148,29 @@ internal object DeepLinkOpener {
 }
 
 /** How Android 12+ treats this app's `https` links, per domain. */
-internal data class AppLinksStatus(val linkHandlingAllowed: Boolean, val domains: List<Pair<String, DomainState>>)
+internal data class AppLinksStatus(
+    val linkHandlingAllowed: Boolean,
+    val domains: List<Pair<String, DomainState>>
+)
 
 internal enum class DomainState { Verified, SelectedByUser, NotVerified }
 
 @RequiresApi(Build.VERSION_CODES.S)
 internal fun appLinksStatus(context: Context): AppLinksStatus? {
     val manager = context.getSystemService(DomainVerificationManager::class.java) ?: return null
-    val state = runCatching { manager.getDomainVerificationUserState(context.packageName) }.getOrNull() ?: return null
+    val state =
+        runCatching { manager.getDomainVerificationUserState(context.packageName) }.getOrNull()
+            ?: return null
     return AppLinksStatus(
         linkHandlingAllowed = state.isLinkHandlingAllowed,
-        domains = state.hostToStateMap.entries.sortedBy { it.key }.map { (host, value) ->
-            host to when (value) {
-                DomainVerificationUserState.DOMAIN_STATE_VERIFIED -> DomainState.Verified
-                DomainVerificationUserState.DOMAIN_STATE_SELECTED -> DomainState.SelectedByUser
-                else -> DomainState.NotVerified
-            }
-        },
+        // The platform map's entry set rejects toArray(), which sortedBy calls; map iterates instead.
+        domains = state.hostToStateMap.map { (host, value) -> host to value }.sortedBy { it.first }
+            .map { (host, value) ->
+                host to when (value) {
+                    DomainVerificationUserState.DOMAIN_STATE_VERIFIED -> DomainState.Verified
+                    DomainVerificationUserState.DOMAIN_STATE_SELECTED -> DomainState.SelectedByUser
+                    else -> DomainState.NotVerified
+                }
+            },
     )
 }

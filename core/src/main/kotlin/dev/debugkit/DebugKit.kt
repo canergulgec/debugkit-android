@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import dev.debugkit.internal.CrashAttachments
 import dev.debugkit.internal.DebugSettings
@@ -27,6 +28,10 @@ import dev.debugkit.plugin.FeatureFlagsPlugin
 import dev.debugkit.plugin.PushPlugin
 import dev.debugkit.plugin.QuickActionsPlugin
 import dev.debugkit.ui.DebugKitActivity
+import java.util.concurrent.atomic.AtomicBoolean
+
+private const val CLOSE_SETTLE_MS = 150L
+private const val CLOSE_TIMEOUT_MS = 3_000L
 
 /**
  * Entry point of DebugKit.
@@ -119,6 +124,28 @@ public object DebugKit {
         if (!installed) return
         PushStore.record(ReceivedPush(System.currentTimeMillis(), title, body, data.toMap()))
         PluginRegistry.register(PushPlugin)
+    }
+
+    /**
+     * Closes DebugKit, then runs [then] on the main thread once DebugKit's window is gone and the
+     * app's own screen is back in front. Use it for actions that start or restart app screens,
+     * such as logging out: DebugKit runs in its own task, so starting the app's task while
+     * DebugKit is still on top makes Android flag the launch as "brought to front", which many
+     * launcher activities finish on. If DebugKit is not open, [then] runs right away. `:noop`
+     * always runs it right away.
+     */
+    public fun close(then: () -> Unit = {}) {
+        if (!DebugKitActivity.finishCurrent()) {
+            then()
+            return
+        }
+        val done = AtomicBoolean(false)
+        val runOnce = { if (done.compareAndSet(false, true)) then() }
+        // Wait until DebugKit's window is gone: if the process exits while it is still on screen,
+        // the system keeps showing its last frame until the app restarts.
+        DebugKitActivity.afterDestroyed { Handler(Looper.getMainLooper()).postDelayed(runOnce, CLOSE_SETTLE_MS) }
+        // Safety net in case the screen is never destroyed.
+        Handler(Looper.getMainLooper()).postDelayed(runOnce, CLOSE_TIMEOUT_MS)
     }
 
     /** Opens the DebugKit screen, e.g. from a button in the host app's own debug menu. */
