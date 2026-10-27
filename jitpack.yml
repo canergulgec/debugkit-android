@@ -1,4 +1,4 @@
-# AGP 9 needs JDK 17+ to run.
+# AGP 8.x and Gradle 9 need JDK 17+ to run.
 jdk:
   - openjdk17
 install:

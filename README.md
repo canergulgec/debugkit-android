@@ -206,6 +206,7 @@ DebugKit.install(this) {
         choice(
             "Region", options = listOf("EU", "US"),
             selected = { session.region }, onSelected = { session.region = it },
+            pinToHome = true,
         )
     }
     deepLinks {
@@ -213,6 +214,9 @@ DebugKit.install(this) {
     }
 }
 ```
+
+`pinToHome = true` also shows a choice on the Home tab as a segmented control, for settings QA
+changes on almost every session.
 
 ### Crashes
 
@@ -233,6 +237,21 @@ own debug menu or a button:
 ```kotlin
 DebugKit.open(context)
 ```
+
+### Actions that restart the app
+
+DebugKit runs in its own task. If an action starts or restarts your app's screens (log out,
+clear data, switch account) while DebugKit is still on top, Android treats the launch as
+"brought to front" and many launcher activities finish right away. Close DebugKit first:
+
+```kotlin
+button("Log out") {
+    DebugKit.close { session.logout() }
+}
+```
+
+`close` runs the block once DebugKit's screen is gone and your app is back in front, or right
+away if DebugKit is not open. In release builds (`noop`) it always runs right away.
 
 ## Your own screens
 

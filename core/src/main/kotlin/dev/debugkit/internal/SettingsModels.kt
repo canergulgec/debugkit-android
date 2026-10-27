@@ -60,7 +60,13 @@ internal sealed interface ActionItem {
         val selected: () -> String?,
         val onSelected: (String) -> Unit,
         val pinToHome: Boolean,
-    ) : ActionItem
+    ) : ActionItem {
+        /** The app's current option; a throwing [selected] shows as nothing picked instead of crashing DebugKit. */
+        fun current(): String? = runCatching { selected() }.getOrNull()
+
+        /** Applies [option] and returns the error, if the app's [onSelected] threw one. */
+        fun select(option: String): Throwable? = runCatching { onSelected(option) }.exceptionOrNull()
+    }
 }
 
 /** Pure selection logic, kept apart from storage so it can be unit tested. */

@@ -1,5 +1,7 @@
 package dev.debugkit.plugin
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -75,11 +77,11 @@ internal object QuickActionsPlugin : DebugPlugin {
                         }
                     }
                     is ActionItem.Choice -> {
-                        var current by remember(generation) { mutableStateOf(item.selected()) }
+                        var current by remember(generation) { mutableStateOf(item.current()) }
                         ChoiceCard(item, current) { option ->
                             if (option == current) return@ChoiceCard
-                            item.onSelected(option)
-                            current = item.selected()
+                            item.select(option)?.let { showChoiceError(context, it) }
+                            current = item.current()
                             generation++
                         }
                     }
@@ -140,4 +142,9 @@ internal object QuickActionsPlugin : DebugPlugin {
             }
         }
     }
+}
+
+/** Tells QA the app rejected a choice, instead of letting the app's exception close DebugKit. */
+internal fun showChoiceError(context: Context, error: Throwable) {
+    Toast.makeText(context, "Error: ${error.message ?: error::class.java.simpleName}", Toast.LENGTH_LONG).show()
 }
