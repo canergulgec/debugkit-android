@@ -57,6 +57,7 @@ import dev.debugkit.plugin.DebugTile
 import dev.debugkit.plugin.EnvironmentPlugin
 import dev.debugkit.plugin.QuickActionsPlugin
 import dev.debugkit.plugin.RestartBanner
+import dev.debugkit.plugin.showChoiceError
 
 private const val HOME_ACTIONS = 3
 
@@ -111,7 +112,8 @@ private fun Header(onClose: () -> Unit) {
 /** A choice the app pinned to Home: changes apply immediately, like in Quick Actions. */
 @Composable
 private fun PinnedChoice(item: ActionItem.Choice) {
-    var current by remember { mutableStateOf(item.selected()) }
+    val context = LocalContext.current
+    var current by remember { mutableStateOf(item.current()) }
     DebugKitCard {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DebugKitSectionLabel(item.title)
@@ -122,8 +124,8 @@ private fun PinnedChoice(item: ActionItem.Choice) {
                 onSelect = { index ->
                     val option = item.options[index]
                     if (option != current) {
-                        item.onSelected(option)
-                        current = item.selected()
+                        item.select(option)?.let { showChoiceError(context, it) }
+                        current = item.current()
                     }
                 },
             )
@@ -220,8 +222,9 @@ private fun QuickActions(onAll: () -> Unit) {
     val buttons = DebugSettings.actions.filterIsInstance<ActionItem.Button>()
     if (buttons.isEmpty()) return
     val shown = buttons.take(HOME_ACTIONS)
-    // Toggles and values only appear on the full page, so they also call for "All".
-    val hasMore = DebugSettings.actions.count { it !is ActionItem.Section } > shown.size
+    // Toggles and values only appear on the full page, so they also call for "All". Choices pinned
+    // to Home already show above, so they do not.
+    val hasMore = DebugSettings.actions.count { it !is ActionItem.Section && !(it is ActionItem.Choice && it.pinToHome) } > shown.size
     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         DebugKitSectionLabel("Quick actions", Modifier.weight(1f))
         if (hasMore) {
