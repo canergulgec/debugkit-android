@@ -46,11 +46,11 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    debugImplementation("com.github.debugkit-dev.debugkit-android:core:<version>")
-    debugImplementation("com.github.debugkit-dev.debugkit-android:network:<version>") // OkHttp inspector and mocks
-    debugImplementation("com.github.debugkit-dev.debugkit-android:logs:<version>")    // Timber logs
-    debugImplementation("com.github.debugkit-dev.debugkit-android:layers:<version>")  // layout inspector
-    releaseImplementation("com.github.debugkit-dev.debugkit-android:noop:<version>")
+    debugImplementation("com.github.canergulgec.debugkit-android:core:<version>")
+    debugImplementation("com.github.canergulgec.debugkit-android:network:<version>") // OkHttp inspector and mocks
+    debugImplementation("com.github.canergulgec.debugkit-android:logs:<version>")    // Timber logs
+    debugImplementation("com.github.canergulgec.debugkit-android:layers:<version>")  // layout inspector
+    releaseImplementation("com.github.canergulgec.debugkit-android:noop:<version>")
 }
 ```
 
@@ -58,7 +58,7 @@ Every build type needs either the real modules or `noop`. If QA tests a build ty
 `debug` (say `qa` or `staging`), add the modules for it too, or the app will not compile:
 
 ```kotlin
-"qaImplementation"("com.github.debugkit-dev.debugkit-android:core:<version>")
+"qaImplementation"("com.github.canergulgec.debugkit-android:core:<version>")
 ```
 
 `Application.onCreate`:

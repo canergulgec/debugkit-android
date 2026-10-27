@@ -3,4 +3,5 @@ jdk:
   - openjdk17
 install:
   # Publishes every module that applies `maven-publish`; :sample does not.
-  - ./gradlew publishToMavenLocal
+  # JitPack exports the git tag as $VERSION; pass it so the artifacts match the requested version.
+  - ./gradlew publishToMavenLocal -PVERSION=$VERSION
